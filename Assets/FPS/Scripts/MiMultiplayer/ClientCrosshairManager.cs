@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
 using Unity.FPS.UI;
-using UnityEditor.ProBuilder;
+using UnityEngine.ProBuilder; // Cambiado de using UnityEditor.ProBuilder;
 using UnityEngine.InputSystem;
 
 namespace Unity.FPS.UI

@@ -3,7 +3,7 @@ using Unity.FPS.Gameplay;
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
-using UnityEditor.ProBuilder;
+using UnityEngine.ProBuilder; // Cambiado de using UnityEditor.ProBuilder;
 using UnityEngine.InputSystem;
 
 
