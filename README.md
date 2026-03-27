@@ -1,6 +1,8 @@
-# UPV-FPS
+# FPS Online
 
+Se convierte el proyecto Unity original UPV-FPS de la versión 6000.3.9.f1 a 6000.3.12f1, perdiendo registros del GitLab anterior.
 
+Esta es la documentación que venía originalmente con el repositorio:
 
 ## Getting started
 
