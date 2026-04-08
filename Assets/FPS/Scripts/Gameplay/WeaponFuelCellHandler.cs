@@ -27,6 +27,13 @@ namespace Unity.FPS.Gameplay
             DebugUtility.HandleErrorIfNullGetComponent<WeaponController, WeaponFuelCellHandler>(m_Weapon, this,
                 gameObject);
 
+            if (FuelCells == null || FuelCells.Length == 0)
+            {
+                // Si el prefab no tiene fuel cells asignadas, no hacemos nada (evita UnassignedReferenceException).
+                enabled = false;
+                return;
+            }
+
             m_FuelCellsCooled = new bool[FuelCells.Length];
             for (int i = 0; i < m_FuelCellsCooled.Length; i++)
             {
@@ -36,10 +43,14 @@ namespace Unity.FPS.Gameplay
 
         void Update()
         {
+            if (FuelCells == null || FuelCells.Length == 0 || m_Weapon == null)
+                return;
+
             if (SimultaneousFuelCellsUsage)
             {
                 for (int i = 0; i < FuelCells.Length; i++)
                 {
+                    if (FuelCells[i] == null) continue;
                     FuelCells[i].transform.localPosition = Vector3.Lerp(FuelCellUsedPosition, FuelCellUnusedPosition,
                         m_Weapon.CurrentAmmoRatio);
                 }
@@ -56,6 +67,7 @@ namespace Unity.FPS.Gameplay
                     float value = Mathf.InverseLerp(lim1, lim2, m_Weapon.CurrentAmmoRatio);
                     value = Mathf.Clamp01(value);
 
+                    if (FuelCells[i] == null) continue;
                     FuelCells[i].transform.localPosition =
                         Vector3.Lerp(FuelCellUsedPosition, FuelCellUnusedPosition, value);
                 }

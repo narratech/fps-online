@@ -82,9 +82,13 @@ namespace Unity.FPS.Gameplay
 
             m_PlayerCharacterController = GetComponent<PlayerCharacterController>();
 
-            DebugUtility.HandleErrorIfNullGetComponent<PlayerCharacterController, PlayerInputHandler>(
-
-                m_PlayerCharacterController, this, gameObject);
+            // En algunos prefabs (p.ej. armas sueltas) este componente puede acabar añadido por error.
+            // Si no hay PlayerCharacterController, nos desactivamos sin spamear errores.
+            if (m_PlayerCharacterController == null)
+            {
+                enabled = false;
+                return;
+            }
 
             m_GameFlowManager = FindFirstObjectByType<GameFlowManager>();
 

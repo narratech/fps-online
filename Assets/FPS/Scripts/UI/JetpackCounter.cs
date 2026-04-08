@@ -20,20 +20,33 @@ namespace Unity.FPS.UI
 
         void Awake()
         {
+            // En multiplayer/MPPM el jetpack puede no existir aún cuando carga el HUD.
             m_Jetpack = FindFirstObjectByType<Jetpack>();
-            DebugUtility.HandleErrorIfNullFindObject<Jetpack, JetpackCounter>(m_Jetpack, this);
-
-            FillBarColorChange.Initialize(1f, 0f);
+            if (FillBarColorChange != null)
+                FillBarColorChange.Initialize(1f, 0f);
         }
 
         void Update()
         {
-            MainCanvasGroup.gameObject.SetActive(m_Jetpack.IsJetpackUnlocked);
+            if (m_Jetpack == null)
+            {
+                m_Jetpack = FindFirstObjectByType<Jetpack>();
+                if (m_Jetpack == null)
+                {
+                    if (MainCanvasGroup != null) MainCanvasGroup.gameObject.SetActive(false);
+                    return;
+                }
+            }
+
+            if (MainCanvasGroup != null)
+                MainCanvasGroup.gameObject.SetActive(m_Jetpack.IsJetpackUnlocked);
 
             if (m_Jetpack.IsJetpackUnlocked)
             {
-                JetpackFillImage.fillAmount = m_Jetpack.CurrentFillRatio;
-                FillBarColorChange.UpdateVisual(m_Jetpack.CurrentFillRatio);
+                if (JetpackFillImage != null)
+                    JetpackFillImage.fillAmount = m_Jetpack.CurrentFillRatio;
+                if (FillBarColorChange != null)
+                    FillBarColorChange.UpdateVisual(m_Jetpack.CurrentFillRatio);
             }
         }
     }
