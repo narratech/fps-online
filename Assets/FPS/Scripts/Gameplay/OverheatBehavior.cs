@@ -48,6 +48,13 @@ namespace Unity.FPS.Gameplay
 
         void Awake()
         {
+            if (!SteamVfx)
+            {
+                // Si el prefab/arma no tiene asignado el VFX, no rompemos el juego.
+                enabled = false;
+                return;
+            }
+
             var emissionModule = SteamVfx.emission;
             emissionModule.rateOverTimeMultiplier = 0f;
 

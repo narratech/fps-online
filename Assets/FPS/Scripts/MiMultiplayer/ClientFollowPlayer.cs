@@ -16,47 +16,45 @@ namespace Unity.FPS.AI
 
         void Start()
         {
-            ActorsManager actorsManager = FindAnyObjectByType<ActorsManager>();
-            if (actorsManager != null)
-                m_PlayerTransform = actorsManager.Player.transform;
-            else
-            {
-                enabled = false;
-                return;
-            }
-
-            m_OriginalOffset = transform.position - m_PlayerTransform.position;
+            TryResolvePlayerAndOffset();
         }
 
         public override void OnNetworkSpawn()
         {
-
-
             base.OnNetworkSpawn();
 
             if (IsOwner)
             {
-                ActorsManager actorsManager = FindAnyObjectByType<ActorsManager>();
-                if (actorsManager != null)
-                    m_PlayerTransform = actorsManager.Player.transform;
-                else
-                {
-                    enabled = false;
-                    return;
-                }
-
-                m_OriginalOffset = transform.position - m_PlayerTransform.position;
-
+                TryResolvePlayerAndOffset();
             }
-
-
         }
 
 
 
         void LateUpdate()
         {
+            if (m_PlayerTransform == null)
+            {
+                // En multiplayer el player puede no existir aún cuando spawnea este objeto.
+                if (!TryResolvePlayerAndOffset())
+                    return;
+            }
+
             transform.position = m_PlayerTransform.position + m_OriginalOffset;
+        }
+
+        bool TryResolvePlayerAndOffset()
+        {
+            ActorsManager actorsManager = FindAnyObjectByType<ActorsManager>();
+            if (actorsManager == null || actorsManager.Player == null)
+                return false;
+
+            m_PlayerTransform = actorsManager.Player.transform;
+            if (m_PlayerTransform == null)
+                return false;
+
+            m_OriginalOffset = transform.position - m_PlayerTransform.position;
+            return true;
         }
     }
 }
