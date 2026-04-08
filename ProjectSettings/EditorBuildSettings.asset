@@ -17,6 +17,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/FPS/Scenes/MainScene.unity
     guid: d794a2ef8ba31d847ad3c19d03e2ddb9
+  - enabled: 1
+    path: Assets/FPS/Scenes/SecondaryScene.unity
+    guid: 9fc0d4010bbf28b4594072e72b8655ab
+  - enabled: 1
+    path: Assets/FPS/Scenes/PrisonScene.unity
+    guid: b9f34d2f31a6029449ee2e46194d88c4
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 05b4aeda8533b704f9be24b556a43d98,
       type: 3}
