@@ -84,6 +84,10 @@ namespace Unity.FPS.AI
         [Tooltip("Color of the sphere gizmo representing the detection range")]
         public Color DetectionRangeColor = Color.blue;
 
+        [Header("Multiplayer / score")]
+        [Tooltip("Si está desactivado, matar este enemigo no suma kill en el marcador (p. ej. torreta, hoverbot).")]
+        [SerializeField] bool m_AwardKillCreditToLastDamager = true;
+
         public UnityAction onAttack;
         public UnityAction onDetectedTarget;
         public UnityAction onLostTarget;
@@ -369,7 +373,7 @@ namespace Unity.FPS.AI
             // Contabilizamos la kill SOLO en el host/servidor.
             // Importante: este archivo vive en el asmdef `fps.AI`, que no referencia Netcode ni scripts de MiMultiplayer.
             // Por eso evitamos dependencias directas y usamos reflexión + SendMessage.
-            if (IsNetcodeServer())
+            if (IsNetcodeServer() && m_AwardKillCreditToLastDamager)
             {
                 if (m_LastDamageSource != null)
                 {

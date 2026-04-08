@@ -37,7 +37,11 @@ namespace Unity.FPS.Game
             // Apply damages with distance falloff
             foreach (Damageable uniqueDamageable in uniqueDamagedHealths.Values)
             {
-                float distance = Vector3.Distance(uniqueDamageable.transform.position, transform.position);
+                // No dañar al propio dueño del proyectil (evita autodestrucción por AoE a quemarropa).
+                if (owner != null && uniqueDamageable.transform.root == owner.transform.root)
+                    continue;
+
+                float distance = Vector3.Distance(uniqueDamageable.transform.position, center);
                 uniqueDamageable.InflictDamage(
                     damage * DamageRatioOverDistance.Evaluate(distance / AreaOfEffectDistance), true, owner);
             }
