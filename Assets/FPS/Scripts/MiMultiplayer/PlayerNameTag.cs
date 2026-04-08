@@ -14,6 +14,30 @@ public class PlayerNameTag : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner);
 
+    public NetworkVariable<int> Kills = new NetworkVariable<int>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
+    public NetworkVariable<int> Deaths = new NetworkVariable<int>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
+    // Llamado por enemigos al morir (servidor) vía SendMessage desde el asmdef de AI.
+    public void AddKillServer()
+    {
+        if (!IsServer) return;
+        Kills.Value++;
+    }
+
+    // Llamado por el respawn al morir (servidor) si quieres reutilizarlo vía SendMessage.
+    public void AddDeathServer()
+    {
+        if (!IsServer) return;
+        Deaths.Value++;
+    }
+
     void Start()
     {
         // Nos suscribimos para escuchar cuando internet cambie el nombre

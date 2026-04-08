@@ -45,7 +45,12 @@ namespace Unity.FPS.Game
                 if (syncScript != null)
                 {
                     // Si es un jugador, enviamos el recado al script de red usando SendMessage
-                    Health.SendMessage("OnNetworkDamageRequested", totalDamage, SendMessageOptions.DontRequireReceiver);
+                    // Incluimos también quién hizo el daño para poder contar kills correctamente.
+                    Health.SendMessage(
+                        "OnNetworkDamageRequested",
+                        new object[] { totalDamage, damageSource },
+                        SendMessageOptions.DontRequireReceiver
+                    );
                 }
                 else
                 {

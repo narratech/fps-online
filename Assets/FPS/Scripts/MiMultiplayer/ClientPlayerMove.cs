@@ -4,6 +4,8 @@ using UnityEngine.InputSystem;
 using Unity.FPS.Gameplay;
 using Unity.FPS.Game;
 using UnityEngine.SceneManagement; // ¡NUEVO! Necesario para saber cuándo carga la escena
+using TMPro;
+using System.Text;
 
 public class NewMonoBehaviourScript : NetworkBehaviour
 {
@@ -21,6 +23,12 @@ public class NewMonoBehaviourScript : NetworkBehaviour
     [Header("Gameplay Scenes")]
     [Tooltip("Escenas donde el jugador debe activarse (cámara, input, controller, etc.).")]
     [SerializeField] private string[] gameplaySceneNames = { "MainScene", "PrisonScene", "SecondaryScene" };
+
+    [Header("Scoreboard HUD")]
+    [SerializeField] private float scoreboardRefreshInterval = 0.25f;
+    TextMeshProUGUI m_ScoreboardText;
+    float m_NextScoreboardRefresh;
+    readonly StringBuilder m_Sb = new StringBuilder(512);
 
     void Awake()
     {
@@ -114,5 +122,66 @@ public class NewMonoBehaviourScript : NetworkBehaviour
         if (m_actor != null) m_actor.enabled = true;
         if (m_damageable != null) m_damageable.enabled = true;
         if (m_playerinput != null) m_playerinput.enabled = true;
+
+        EnsureScoreboardUI();
+    }
+
+    void Update()
+    {
+        if (!IsOwner) return;
+        if (Time.unscaledTime < m_NextScoreboardRefresh) return;
+        m_NextScoreboardRefresh = Time.unscaledTime + scoreboardRefreshInterval;
+
+        if (!EsEscenaJugable(SceneManager.GetActiveScene().name))
+            return;
+
+        EnsureScoreboardUI();
+        if (m_ScoreboardText == null) return;
+
+        var allTags = FindObjectsByType<PlayerNameTag>(FindObjectsSortMode.None);
+
+        m_Sb.Clear();
+        m_Sb.AppendLine("MARCADOR");
+        for (int i = 0; i < allTags.Length; i++)
+        {
+            var t = allTags[i];
+            string name = t.NetworkedName.Value.ToString();
+            if (string.IsNullOrWhiteSpace(name))
+                name = $"Player {t.OwnerClientId}";
+
+            m_Sb.Append(name);
+            m_Sb.Append("  K:");
+            m_Sb.Append(t.Kills.Value);
+            m_Sb.Append("  D:");
+            m_Sb.Append(t.Deaths.Value);
+            m_Sb.AppendLine();
+        }
+
+        m_ScoreboardText.text = m_Sb.ToString();
+    }
+
+    void EnsureScoreboardUI()
+    {
+        if (m_ScoreboardText != null) return;
+        if (!IsOwner) return;
+
+        var canvas = GetComponentInChildren<Canvas>(true);
+        if (canvas == null) return;
+
+        var go = new GameObject("ScoreboardText", typeof(RectTransform));
+        go.transform.SetParent(canvas.transform, false);
+
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(20f, -20f);
+        rt.sizeDelta = new Vector2(520f, 420f);
+
+        m_ScoreboardText = go.AddComponent<TextMeshProUGUI>();
+        m_ScoreboardText.fontSize = 22;
+        m_ScoreboardText.enableWordWrapping = false;
+        m_ScoreboardText.alignment = TextAlignmentOptions.TopLeft;
+        m_ScoreboardText.text = "MARCADOR\n";
     }
 }

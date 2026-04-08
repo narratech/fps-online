@@ -9,6 +9,7 @@ namespace Unity.FPS.Gameplay
     {
         private Health m_Health;
         private PlayerCharacterController m_CharacterController;
+        GameObject m_LastDamageSource;
 
         void Awake()
         {
@@ -19,6 +20,7 @@ namespace Unity.FPS.Gameplay
             if (m_Health != null)
             {
                 m_Health.OnDie += HandleDeath;
+                m_Health.OnDamaged += OnDamaged;
             }
         }
 
@@ -28,11 +30,30 @@ namespace Unity.FPS.Gameplay
             if (m_Health != null)
             {
                 m_Health.OnDie -= HandleDeath;
+                m_Health.OnDamaged -= OnDamaged;
             }
+        }
+
+        void OnDamaged(float damage, GameObject damageSource)
+        {
+            if (damageSource != null)
+                m_LastDamageSource = damageSource;
         }
 
         void HandleDeath()
         {
+            // El servidor contabiliza muertes/killers (si aplica)
+            if (IsServer)
+            {
+                var myTag = GetComponent<PlayerNameTag>();
+                if (myTag != null)
+                    myTag.Deaths.Value++;
+
+                var killerTag = m_LastDamageSource != null ? m_LastDamageSource.GetComponentInParent<PlayerNameTag>() : null;
+                if (killerTag != null && killerTag != myTag)
+                    killerTag.Kills.Value++;
+            }
+
             // Si yo muero, yo inicio la cuenta atrás en mi pantalla
             if (!IsOwner) return;
 
