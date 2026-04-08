@@ -38,9 +38,23 @@ public class ServerConnectionHandler : MonoBehaviour
 
             if (selectedPrefab != null)
             {
-                response.PlayerPrefabHash = selectedPrefab.GetComponent<NetworkObject>().PrefabIdHash;
+                var netObj = selectedPrefab.GetComponent<NetworkObject>();
+                if (netObj != null)
+                {
+                    response.PlayerPrefabHash = netObj.PrefabIdHash;
+                }
+                else
+                {
+                    Debug.LogError($"[Approval] Prefab '{selectedPrefab.name}' no tiene NetworkObject.");
+                }
             }
         }
+        else
+        {
+            Debug.LogError($"[Approval] characterIndex fuera de rango ({characterIndex}). ListCount={(UniversidadesList != null ? UniversidadesList.PrefabList.Count : -1)} Payload='{payloadString}'");
+        }
+
+        Debug.Log($"[Approval] clientId={request.ClientNetworkId} payload='{payloadString}' prefabHash={response.PlayerPrefabHash} approved={response.Approved}");
 
         // El portero avisa al Cerebro del nuevo jugador
         if (MatchDataManager.Instance != null)
