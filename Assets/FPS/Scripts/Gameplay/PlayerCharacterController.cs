@@ -189,6 +189,14 @@ namespace Unity.FPS.Gameplay
                 m_Health.Kill();
             }
 
+            // Si estamos muertos, no procesamos movimiento ni físicas de jugador.
+            // Mantenemos la actualización del animator para que se vea la animación de muerte.
+            if (IsDead)
+            {
+                UpdateAnimator();
+                return;
+            }
+
             HasJumpedThisFrame = false;
 
             bool wasGrounded = IsGrounded;

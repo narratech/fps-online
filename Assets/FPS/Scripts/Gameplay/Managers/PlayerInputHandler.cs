@@ -161,8 +161,12 @@ namespace Unity.FPS.Gameplay
         public bool CanProcessInput()
 
         {
+            // Si el jugador está muerto, no debería poder moverse/disparar durante la animación de muerte.
+            bool isDead = m_PlayerCharacterController != null && m_PlayerCharacterController.IsDead;
 
-            return Cursor.lockState == CursorLockMode.Locked && !m_GameFlowManager.GameIsEnding;
+            return Cursor.lockState == CursorLockMode.Locked
+                   && !m_GameFlowManager.GameIsEnding
+                   && !isDead;
 
         }
 
