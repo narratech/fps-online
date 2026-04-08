@@ -24,6 +24,17 @@ namespace Unity.FPS.Gameplay
             }
         }
 
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+
+            // Spawn inicial aleatorio (solo servidor) para que no aparezcan todos en el mismo punto "Respawn".
+            if (IsServer)
+            {
+                TryMoveToRandomSpawnPointAvoidingPlayers();
+            }
+        }
+
         public override void OnDestroy()
         {
             base.OnDestroy();
@@ -97,13 +108,8 @@ namespace Unity.FPS.Gameplay
             Vector3 spawnPos = new Vector3(0, 5, 0); // Por si se te olvida poner puntos, caes del cielo
             Quaternion spawnRot = Quaternion.identity;
 
-            // 2. Elige uno al azar
-            if (spawnPoints.Length > 0)
-            {
-                int randomIndex = Random.Range(0, spawnPoints.Length);
-                spawnPos = spawnPoints[randomIndex].transform.position;
-                spawnRot = spawnPoints[randomIndex].transform.rotation;
-            }
+            // 2. Elige uno al azar evitando spawnear encima de otros jugadores, si es posible
+            PickSpawnPointAvoidingPlayers(spawnPoints, out spawnPos, out spawnRot);
 
             // --- MUY IMPORTANTE ---
             // Este RPC solo responde al cliente que lo pidió, así que si NO revivimos también en el servidor,
@@ -142,6 +148,64 @@ namespace Unity.FPS.Gameplay
             // 4. Curamos la vida y reactivamos los controles
             if (m_Health != null) m_Health.Revive();
             if (m_CharacterController != null) m_CharacterController.OnRespawn();
+        }
+
+        void TryMoveToRandomSpawnPointAvoidingPlayers()
+        {
+            GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("RespawnPoint");
+            PickSpawnPointAvoidingPlayers(spawnPoints, out var spawnPos, out var spawnRot);
+
+            transform.position = spawnPos;
+            transform.rotation = spawnRot;
+        }
+
+        static void PickSpawnPointAvoidingPlayers(GameObject[] spawnPoints, out Vector3 spawnPos, out Quaternion spawnRot)
+        {
+            spawnPos = new Vector3(0, 5, 0);
+            spawnRot = Quaternion.identity;
+
+            if (spawnPoints == null || spawnPoints.Length == 0)
+                return;
+
+            // Lista de jugadores actuales para evitar solapamiento (simple y barato).
+            var players = Object.FindObjectsByType<PlayerCharacterController>(FindObjectsSortMode.None);
+            const float minDistance = 2.0f;
+
+            // Intentamos varios puntos aleatorios antes de rendirnos.
+            for (int attempt = 0; attempt < 12; attempt++)
+            {
+                int idx = Random.Range(0, spawnPoints.Length);
+                var sp = spawnPoints[idx];
+                if (sp == null) continue;
+
+                Vector3 candidate = sp.transform.position;
+                bool blocked = false;
+
+                for (int i = 0; i < players.Length; i++)
+                {
+                    if (players[i] == null) continue;
+                    if (Vector3.Distance(players[i].transform.position, candidate) < minDistance)
+                    {
+                        blocked = true;
+                        break;
+                    }
+                }
+
+                if (!blocked)
+                {
+                    spawnPos = candidate;
+                    spawnRot = sp.transform.rotation;
+                    return;
+                }
+            }
+
+            // Fallback: cualquiera.
+            var fallback = spawnPoints[Random.Range(0, spawnPoints.Length)];
+            if (fallback != null)
+            {
+                spawnPos = fallback.transform.position;
+                spawnRot = fallback.transform.rotation;
+            }
         }
     }
 }

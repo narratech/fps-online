@@ -102,25 +102,11 @@ public class NewMonoBehaviourScript : NetworkBehaviour
 
     private void UbicarYEncenderJugador()
     {
-        // 1. Buscamos nuestro punto de aparición por su Tag
-        GameObject spawnPoint = GameObject.FindWithTag("Respawn");
-
-        // 2. Nos aseguramos de que el CharacterController esté apagado antes de moverlo
+        // No hacemos spawn inicial aquí: el servidor posiciona en un RespawnPoint aleatorio.
+        // Solo nos aseguramos de que el CharacterController esté apagado antes de moverlo (si hiciera falta).
         if (m_characterController != null) m_characterController.enabled = false;
 
-        // 3. Teletransporte
-        if (spawnPoint != null)
-        {
-            transform.position = spawnPoint.transform.position;
-            transform.rotation = spawnPoint.transform.rotation;
-        }
-        else
-        {
-            // Por si se te olvida poner el SpawnPoint, lo dejamos caer desde el cielo
-            transform.position = new Vector3(0, 5f, 0);
-        }
-
-        // 4. ¡Encendemos todo en el mapa correcto!
+        // ¡Encendemos todo en el mapa correcto!
         if (m_camera != null) m_camera.SetActive(true);
         if (m_playerInputHandler != null) m_playerInputHandler.enabled = true;
         if (m_playerCharacterController != null) m_playerCharacterController.enabled = true;

@@ -54,7 +54,7 @@ public class ServerConnectionHandler : MonoBehaviour
             Debug.LogError($"[Approval] characterIndex fuera de rango ({characterIndex}). ListCount={(UniversidadesList != null ? UniversidadesList.PrefabList.Count : -1)} Payload='{payloadString}'");
         }
 
-        Debug.Log($"[Approval] clientId={request.ClientNetworkId} payload='{payloadString}' prefabHash={response.PlayerPrefabHash} approved={response.Approved}");
+        // Log de approval desactivado para no ensuciar consola en runtime.
 
         // El portero avisa al Cerebro del nuevo jugador
         if (MatchDataManager.Instance != null)
