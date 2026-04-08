@@ -18,6 +18,10 @@ public class NewMonoBehaviourScript : NetworkBehaviour
     [SerializeField] private PlayerInput m_playerinput;
     [SerializeField] private GameObject m_camera;
 
+    [Header("Gameplay Scenes")]
+    [Tooltip("Escenas donde el jugador debe activarse (cámara, input, controller, etc.).")]
+    [SerializeField] private string[] gameplaySceneNames = { "MainScene", "PrisonScene", "SecondaryScene" };
+
     void Awake()
     {
         // Apagamos todo al nacer para que no caiga al vacío en el Menú
@@ -42,8 +46,8 @@ public class NewMonoBehaviourScript : NetworkBehaviour
             // 1. Nos suscribimos al evento "Cuando una escena termine de cargar"
             SceneManager.sceneLoaded += OnSceneLoaded;
 
-            // 2. Si por algún motivo ya estamos en la MainScene al nacer
-            if (SceneManager.GetActiveScene().name == "MainScene")
+            // 2. Si por algún motivo ya estamos en una escena jugable al nacer
+            if (EsEscenaJugable(SceneManager.GetActiveScene().name))
             {
                 UbicarYEncenderJugador();
             }
@@ -61,11 +65,22 @@ public class NewMonoBehaviourScript : NetworkBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Solo reaccionamos si la escena que acaba de cargar es nuestro mapa
-        if (scene.name == "MainScene")
+        // Solo reaccionamos si la escena que acaba de cargar es jugable
+        if (EsEscenaJugable(scene.name))
         {
             UbicarYEncenderJugador();
         }
+    }
+
+    private bool EsEscenaJugable(string sceneName)
+    {
+        if (gameplaySceneNames == null || gameplaySceneNames.Length == 0) return false;
+        for (int i = 0; i < gameplaySceneNames.Length; i++)
+        {
+            if (gameplaySceneNames[i] == sceneName) return true;
+        }
+
+        return false;
     }
 
     private void UbicarYEncenderJugador()

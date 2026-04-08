@@ -309,7 +309,8 @@ namespace HelloWorld
                     // Intentamos arrancar el Host
                     if (NetworkManager.Singleton.StartHost())
                     {
-                        NetworkManager.Singleton.SceneManager.LoadScene("MainScene", UnityEngine.SceneManagement.LoadSceneMode.Single);          
+                        // LA ESCENA QUE SE CARGA NADA MÁS EMPEZAR
+                        NetworkManager.Singleton.SceneManager.LoadScene("PrisonScene", UnityEngine.SceneManagement.LoadSceneMode.Single);          
                     }
                     else
                     {
