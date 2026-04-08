@@ -6,6 +6,7 @@ using Unity.FPS.Game;
 using UnityEngine.SceneManagement; // ¡NUEVO! Necesario para saber cuándo carga la escena
 using TMPro;
 using System.Text;
+using UnityEngine.UI;
 
 public class NewMonoBehaviourScript : NetworkBehaviour
 {
@@ -165,11 +166,23 @@ public class NewMonoBehaviourScript : NetworkBehaviour
         if (m_ScoreboardText != null) return;
         if (!IsOwner) return;
 
-        var canvas = GetComponentInChildren<Canvas>(true);
-        if (canvas == null) return;
+        // El Canvas que traen los prefabs está en World Space (m_RenderMode = 2),
+        // así que para un HUD en pantalla creamos nuestro propio Canvas Overlay local.
+        var hudCanvasGo = new GameObject("ScoreboardCanvas");
+        var canvas = hudCanvasGo.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 999;
+
+        var scaler = hudCanvasGo.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        hudCanvasGo.AddComponent<GraphicRaycaster>();
 
         var go = new GameObject("ScoreboardText", typeof(RectTransform));
-        go.transform.SetParent(canvas.transform, false);
+        go.transform.SetParent(hudCanvasGo.transform, false);
 
         var rt = (RectTransform)go.transform;
         rt.anchorMin = new Vector2(0f, 1f);
