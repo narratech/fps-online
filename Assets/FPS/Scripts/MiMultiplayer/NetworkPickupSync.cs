@@ -44,7 +44,10 @@ public class NetworkPickupSync : NetworkBehaviour
         NetworkObject netObj = GetComponent<NetworkObject>();
         if (netObj != null && netObj.IsSpawned)
         {
-            netObj.Despawn(true);
+            // Si el objeto es "in-scene placed", destruirlo puede provocar warnings.
+            // Preferimos despawnear sin destruir; si quieres que desaparezca visualmente, desactívalo.
+            netObj.Despawn(false);
+            gameObject.SetActive(false);
         }
     }
 

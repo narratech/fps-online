@@ -19,11 +19,15 @@ namespace Unity.FPS.UI
 
         void Update()
         {
+            if (Health == null || HealthBarImage == null || HealthBarPivot == null)
+                return;
+
             // update health bar value
-            HealthBarImage.fillAmount = Health.CurrentHealth / Health.MaxHealth;
+            HealthBarImage.fillAmount = Health.MaxHealth > 0 ? (Health.CurrentHealth / Health.MaxHealth) : 0f;
 
             // rotate health bar to face the camera/player
-            HealthBarPivot.LookAt(Camera.main.transform.position);
+            if (Camera.main != null)
+                HealthBarPivot.LookAt(Camera.main.transform.position);
 
             // hide health bar if needed
             if (HideFullHealthBar)

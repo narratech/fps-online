@@ -124,7 +124,19 @@ public class NewMonoBehaviourScript : NetworkBehaviour
         if (m_damageable != null) m_damageable.enabled = true;
         if (m_playerinput != null) m_playerinput.enabled = true;
 
+        // Aseguramos que haya un AudioListener activo (en MPPM puede aparecer el warning si aún no hay cámara activa)
+        EnsureAudioListener();
+
         EnsureScoreboardUI();
+    }
+
+    void EnsureAudioListener()
+    {
+        if (!IsOwner) return;
+        if (m_camera == null) return;
+
+        var listener = m_camera.GetComponent<AudioListener>();
+        if (listener != null) listener.enabled = true;
     }
 
     void Update()
