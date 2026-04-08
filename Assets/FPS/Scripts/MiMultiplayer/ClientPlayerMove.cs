@@ -185,10 +185,10 @@ public class NewMonoBehaviourScript : NetworkBehaviour
         go.transform.SetParent(hudCanvasGo.transform, false);
 
         var rt = (RectTransform)go.transform;
-        rt.anchorMin = new Vector2(0f, 1f);
-        rt.anchorMax = new Vector2(0f, 1f);
-        rt.pivot = new Vector2(0f, 1f);
-        rt.anchoredPosition = new Vector2(20f, -20f);
+        rt.anchorMin = new Vector2(1f, 1f);
+        rt.anchorMax = new Vector2(1f, 1f);
+        rt.pivot = new Vector2(1f, 1f);
+        rt.anchoredPosition = new Vector2(-20f, -20f);
         rt.sizeDelta = new Vector2(520f, 420f);
 
         m_ScoreboardText = go.AddComponent<TextMeshProUGUI>();

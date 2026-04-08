@@ -32,7 +32,10 @@ public class PlayerHealthSync : NetworkBehaviour
         // El ordenador que ha disparado la bala le pide al servidor que aplique el daño
         if (IsServer)
         {
-            ApplyDamageClientRpc(damage, ToNetRefOrNull(damageSource));
+            // Si ya estamos en el servidor (host), aplicamos autoritativamente y notificamos al resto.
+            var damageSourceRef = ToNetRefOrNull(damageSource);
+            ApplyDamageServer(damage, damageSourceRef);
+            ApplyDamageClientRpc(damage, damageSourceRef);
         }
         else
         {
@@ -43,6 +46,7 @@ public class PlayerHealthSync : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     void RequestDamageServerRpc(float damage, NetworkObjectReference damageSourceRef)
     {
+        ApplyDamageServer(damage, damageSourceRef);
         ApplyDamageClientRpc(damage, damageSourceRef);
     }
 
@@ -50,6 +54,9 @@ public class PlayerHealthSync : NetworkBehaviour
     [ClientRpc]
     void ApplyDamageClientRpc(float damage, NetworkObjectReference damageSourceRef)
     {
+        // En host, el servidor ya aplicó el daño; evitamos doble aplicación.
+        if (IsServer) return;
+
         if (m_Health != null)
         {
             // Ahora sí, ejecutamos el daño real en el script original de cada ordenador a la vez
@@ -59,6 +66,18 @@ public class PlayerHealthSync : NetworkBehaviour
 
             m_Health.TakeDamage(damage, damageSource);
         }
+    }
+
+    void ApplyDamageServer(float damage, NetworkObjectReference damageSourceRef)
+    {
+        if (!IsServer) return;
+        if (m_Health == null) return;
+
+        GameObject damageSource = null;
+        if (damageSourceRef.TryGet(out NetworkObject no) && no != null)
+            damageSource = no.gameObject;
+
+        m_Health.TakeDamage(damage, damageSource);
     }
 
     NetworkObjectReference ToNetRefOrNull(GameObject go)
