@@ -44,6 +44,7 @@ public class FSM : NetworkBehaviour
             return;
         }
 
+        DisableHumanControllersThatFightNavMeshAgent();
         EnsureAgent();
     }
 
@@ -83,6 +84,22 @@ public class FSM : NetworkBehaviour
         if (weapons != null) weapons.enabled = false;
 
         // No deshabilitamos PlayerRespawner ni Health: el bot debe morir/respawnear igual que los humanos.
+    }
+
+    void DisableHumanControllersThatFightNavMeshAgent()
+    {
+        // Si dejamos el stack de control humano activo, su Update puede sobrescribir el movimiento y el bot "no se mueve".
+        var pcc = GetComponent<PlayerCharacterController>();
+        if (pcc != null) pcc.enabled = false;
+
+        var jetpack = GetComponent<Jetpack>();
+        if (jetpack != null) jetpack.enabled = false;
+
+        var playerInput = GetComponent<UnityEngine.InputSystem.PlayerInput>();
+        if (playerInput != null) playerInput.enabled = false;
+
+        var cc = GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
     }
 
     void EnsureAgent()

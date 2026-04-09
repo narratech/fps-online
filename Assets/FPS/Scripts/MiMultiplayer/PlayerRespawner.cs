@@ -114,10 +114,13 @@ namespace Unity.FPS.Gameplay
                     m_LastPlayerAttacker.Kills.Value++;
             }
 
-            // Si yo muero, yo inicio la cuenta atrás en mi pantalla
+            // Si yo muero, yo inicio la cuenta atrás en mi pantalla (humanos) o como bot (sin UI).
             if (!IsOwner) return;
 
-            StartCoroutine(DeathRoutine());
+            if (GetComponent<FSM>() != null)
+                StartCoroutine(BotDeathRoutine());
+            else
+                StartCoroutine(DeathRoutine());
         }
 
         IEnumerator DeathRoutine()
@@ -125,13 +128,22 @@ namespace Unity.FPS.Gameplay
             GameFlowManager flowManager = FindFirstObjectByType<GameFlowManager>();
             CanvasGroup fadeCanvas = flowManager != null ? flowManager.EndGameFadeCanvasGroup : null;
 
-            fadeCanvas.gameObject.SetActive(false);
+            if (fadeCanvas != null && fadeCanvas.gameObject != null)
+                fadeCanvas.gameObject.SetActive(false);
 
             yield return new WaitForSeconds(4f);
 
-            fadeCanvas.gameObject.SetActive(true);
+            if (fadeCanvas != null && fadeCanvas.gameObject != null)
+                fadeCanvas.gameObject.SetActive(true);
 
             // Le pedimos al servidor (Host) que nos busque un sitio para reaparecer
+            RequestRespawnServerRpc();
+        }
+
+        IEnumerator BotDeathRoutine()
+        {
+            // Bot: misma latencia de respawn, pero sin tocar UI/cursor.
+            yield return new WaitForSeconds(4f);
             RequestRespawnServerRpc();
         }
 
