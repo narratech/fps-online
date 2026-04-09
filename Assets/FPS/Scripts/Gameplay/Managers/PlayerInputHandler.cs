@@ -121,24 +121,17 @@ namespace Unity.FPS.Gameplay
             m_NextWeaponAction = InputSystem.actions.FindAction("Player/NextWeapon");
 
             
-
-            m_MoveAction.Enable();
-
-            m_LookAction.Enable();
-
-            m_JumpAction.Enable();
-
-            m_FireAction.Enable();
-
-            m_AimAction.Enable();
-
-            m_SprintAction.Enable();
-
-            m_CrouchAction.Enable();
-
-            m_ReloadAction.Enable();
-
-            m_NextWeaponAction.Enable();
+            // Las acciones pueden no existir según el mapa de InputActions cargado (MPPM, escenas parciales, etc.).
+            // Habilitamos solo las que existan para evitar NullReference.
+            m_MoveAction?.Enable();
+            m_LookAction?.Enable();
+            m_JumpAction?.Enable();
+            m_FireAction?.Enable();
+            m_AimAction?.Enable();
+            m_SprintAction?.Enable();
+            m_CrouchAction?.Enable();
+            m_ReloadAction?.Enable();
+            m_NextWeaponAction?.Enable();
 
         }
 
@@ -316,7 +309,7 @@ namespace Unity.FPS.Gameplay
 
             {
 
-                return m_JumpAction.IsPressed();
+                return m_JumpAction != null && m_JumpAction.IsPressed();
 
             }
 
@@ -356,7 +349,7 @@ namespace Unity.FPS.Gameplay
 
             {
 
-                return m_FireAction.IsPressed();
+                return m_FireAction != null && m_FireAction.IsPressed();
 
             }
 

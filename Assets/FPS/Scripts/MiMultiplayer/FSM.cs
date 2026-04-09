@@ -72,6 +72,9 @@ public class FSM : NetworkBehaviour
         var inputHandler = GetComponent<PlayerInputHandler>();
         if (inputHandler != null) inputHandler.enabled = false;
 
+        var weapons = GetComponent<PlayerWeaponsManager>();
+        if (weapons != null) weapons.enabled = false;
+
         var pcc = GetComponent<PlayerCharacterController>();
         if (pcc != null) pcc.enabled = false;
 
