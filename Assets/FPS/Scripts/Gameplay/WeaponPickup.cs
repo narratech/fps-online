@@ -32,52 +32,50 @@ namespace Unity.FPS.Gameplay
             else
             {
                 // Si jugamos offline (sin script de red), damos el arma y destruimos el objeto localmente
-                GrantWeapon(byPlayer);
+                bool granted = GrantWeapon(byPlayer);
+                if (granted)
+                    GetComponent<LocalWorldPickupRespawn>()?.TryScheduleRespawnAtCurrentTransform();
                 Destroy(gameObject);
             }
         }
 
         // --- FUNCIÓN PÚBLICA (Para que la llame el script de red) ---
-        public void GrantWeapon(PlayerCharacterController byPlayer)
+        public bool GrantWeapon(PlayerCharacterController byPlayer)
         {
             PlayerWeaponsManager playerWeaponsManager = byPlayer.GetComponent<PlayerWeaponsManager>();
-            if (playerWeaponsManager)
+            if (!playerWeaponsManager)
+                return false;
+
+            if (playerWeaponsManager.HasWeapon(WeaponPrefab))
+                return false;
+
+            var prefabControllers = WeaponPrefab != null
+                ? WeaponPrefab.GetComponentsInChildren<WeaponController>(true)
+                : null;
+
+            bool pickedAny = false;
+            if (prefabControllers != null && prefabControllers.Length > 1)
             {
-                if (playerWeaponsManager.HasWeapon(WeaponPrefab))
+                foreach (var wc in prefabControllers)
                 {
-                    return;
-                }
-
-                var prefabControllers = WeaponPrefab != null
-                    ? WeaponPrefab.GetComponentsInChildren<WeaponController>(true)
-                    : null;
-
-                bool pickedAny = false;
-                if (prefabControllers != null && prefabControllers.Length > 1)
-                {
-                    foreach (var wc in prefabControllers)
-                    {
-                        if (wc != null)
-                        {
-                            pickedAny |= playerWeaponsManager.AddWeapon(wc);
-                        }
-                    }
-                }
-                else
-                {
-                    pickedAny = playerWeaponsManager.AddWeapon(WeaponPrefab);
-                }
-
-                if (pickedAny)
-                {
-                    if (playerWeaponsManager.GetActiveWeapon() == null)
-                    {
-                        playerWeaponsManager.SwitchWeapon(true);
-                    }
-
-                    PlayPickupFeedback();
+                    if (wc != null)
+                        pickedAny |= playerWeaponsManager.AddWeapon(wc);
                 }
             }
+            else
+            {
+                pickedAny = playerWeaponsManager.AddWeapon(WeaponPrefab);
+            }
+
+            if (pickedAny)
+            {
+                if (playerWeaponsManager.GetActiveWeapon() == null)
+                    playerWeaponsManager.SwitchWeapon(true);
+
+                PlayPickupFeedback();
+            }
+
+            return pickedAny;
         }
     }
 }

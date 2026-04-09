@@ -26,6 +26,7 @@ namespace Unity.FPS.Gameplay
                     EventManager.Broadcast(evt);
 
                     PlayPickupFeedback();
+                    GetComponent<LocalWorldPickupRespawn>()?.TryScheduleRespawnAtCurrentTransform();
                     Destroy(gameObject);
                 }
             }

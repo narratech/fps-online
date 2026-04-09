@@ -65,7 +65,9 @@ public class NetworkPickupSync : NetworkBehaviour
 
                 if (localPlayer != null)
                 {
-                    m_WeaponPickup.GrantWeapon(localPlayer);
+                    bool granted = m_WeaponPickup.GrantWeapon(localPlayer);
+                    if (granted)
+                        GetComponent<LocalWorldPickupRespawn>()?.TryScheduleRespawnAtCurrentTransform();
                 }
             }
         }

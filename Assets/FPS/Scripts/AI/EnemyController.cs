@@ -394,6 +394,8 @@ namespace Unity.FPS.AI
                 Instantiate(LootPrefab, transform.position, Quaternion.identity);
             }
 
+            GetComponent<EnemyLocalRespawn>()?.OnEnemyDiedScheduleLocalRespawn();
+
             // this will call the OnDestroy function
             Destroy(gameObject, DeathDuration);
         }
