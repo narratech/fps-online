@@ -67,7 +67,7 @@ public class NetworkPickupSync : NetworkBehaviour
                 {
                     bool granted = m_WeaponPickup.GrantWeapon(localPlayer);
                     if (granted)
-                        GetComponent<LocalWorldPickupRespawn>()?.TryScheduleRespawnAtCurrentTransform();
+                        LocalWorldPickupRespawn.ScheduleLocalRespawnFor(gameObject);
                 }
             }
         }

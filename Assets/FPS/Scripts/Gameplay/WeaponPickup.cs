@@ -33,7 +33,7 @@ namespace Unity.FPS.Gameplay
             {
                 bool granted = GrantWeapon(byPlayer);
                 if (granted)
-                    GetComponent<LocalWorldPickupRespawn>()?.TryScheduleRespawnAtCurrentTransform();
+                    LocalWorldPickupRespawn.ScheduleLocalRespawnFor(gameObject);
                 Destroy(gameObject);
             }
         }

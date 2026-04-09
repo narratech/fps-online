@@ -15,7 +15,7 @@ namespace Unity.FPS.Gameplay
             {
                 playerHealth.Heal(HealAmount);
                 PlayPickupFeedback();
-                GetComponent<LocalWorldPickupRespawn>()?.TryScheduleRespawnAtCurrentTransform();
+                LocalWorldPickupRespawn.ScheduleLocalRespawnFor(gameObject);
                 Destroy(gameObject);
             }
         }

@@ -28,8 +28,18 @@ namespace Unity.FPS.AI
         /// <summary>Llamado desde EnemyController al morir (antes de Destroy).</summary>
         public void OnEnemyDiedScheduleLocalRespawn()
         {
-            if (m_EnemyPrefab == null) return;
-            LocalRespawnScheduler.Schedule(m_EnemyPrefab, m_InitialPosition, m_InitialRotation, m_DelaySeconds, m_Parent);
+            if (m_EnemyPrefab == null)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning(
+                    "[EnemyLocalRespawn] m_EnemyPrefab está vacío: no hay respawn local. Asigna el mismo prefab del enemigo en el inspector.",
+                    this);
+#endif
+                return;
+            }
+
+            LocalRespawnService.ScheduleEnemyPrefab(m_EnemyPrefab, m_InitialPosition, m_InitialRotation, m_DelaySeconds,
+                m_Parent);
         }
     }
 }
