@@ -155,7 +155,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76bb47a0637077345a32db45d251dc32, type: 3}
   m_Name: 
   m_EditorClassIdentifier: fps.Gameplay::Unity.FPS.Gameplay.LocalWorldPickupRespawn
-  m_WorldPickupPrefab: {fileID: 5391986374566301945}
+  m_WorldPickupPrefab: {fileID: 0}
   m_DelaySeconds: 30
 --- !u!1 &7696458092355651969
 GameObject:

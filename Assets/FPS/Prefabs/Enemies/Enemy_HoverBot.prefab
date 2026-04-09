@@ -380,7 +380,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b09b3b27166696b4fa699594fcf0a089, type: 3}
   m_Name: 
   m_EditorClassIdentifier: fps.AI::Unity.FPS.AI.EnemyLocalRespawn
-  m_EnemyPrefab: {fileID: 2015434656898269652}
+  m_EnemyPrefab: {fileID: 0}
   m_DelaySeconds: 30
 --- !u!1 &2201913640410082181
 GameObject:

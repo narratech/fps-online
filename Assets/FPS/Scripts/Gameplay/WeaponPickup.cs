@@ -1,4 +1,5 @@
-﻿using Unity.FPS.Game;
+﻿using System.Reflection;
+using Unity.FPS.Game;
 using UnityEngine;
 
 namespace Unity.FPS.Gameplay
@@ -22,16 +23,14 @@ namespace Unity.FPS.Gameplay
 
         protected override void OnPicked(PlayerCharacterController byPlayer)
         {
-            // --- EL TRUCO WRAPPER ---
-            Component networkSync = GetComponent("NetworkPickupSync");
-            if (networkSync != null)
+            // Solo usar red si el NetworkObject está spawneado; si no (p. ej. respawn local), flujo offline.
+            var networkSync = GetComponent("NetworkPickupSync");
+            if (networkSync != null && IsNetworkObjectSpawned(gameObject))
             {
-                // Si el objeto tiene nuestro script de red, le pasamos el recado y él decide
                 networkSync.SendMessage("OnNetworkPickupRequested", byPlayer, SendMessageOptions.DontRequireReceiver);
             }
             else
             {
-                // Si jugamos offline (sin script de red), damos el arma y destruimos el objeto localmente
                 bool granted = GrantWeapon(byPlayer);
                 if (granted)
                     GetComponent<LocalWorldPickupRespawn>()?.TryScheduleRespawnAtCurrentTransform();
@@ -76,6 +75,16 @@ namespace Unity.FPS.Gameplay
             }
 
             return pickedAny;
+        }
+
+        static bool IsNetworkObjectSpawned(GameObject go)
+        {
+            var t = System.Type.GetType("Unity.Netcode.NetworkObject, Unity.Netcode.Runtime");
+            if (t == null) return false;
+            var comp = go.GetComponent(t);
+            if (comp == null) return false;
+            var p = t.GetProperty("IsSpawned", BindingFlags.Public | BindingFlags.Instance);
+            return p != null && (bool)p.GetValue(comp);
         }
     }
 }

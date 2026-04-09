@@ -37,7 +37,11 @@ namespace Unity.FPS.Game
         {
             if (delaySeconds > 0f)
                 yield return new WaitForSeconds(delaySeconds);
-            Object.Instantiate(prefab, position, rotation, parent);
+            // Referencia inválida (p. ej. instancia de escena destruida usada como "prefab")
+            if (prefab == null)
+                yield break;
+            Transform safeParent = parent != null && parent ? parent : null;
+            Object.Instantiate(prefab, position, rotation, safeParent);
         }
     }
 }
