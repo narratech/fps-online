@@ -37,9 +37,30 @@ public class FSM : NetworkBehaviour
             m_Health.OnHealed += OnHealed;
         }
 
-        // Solo el owner decide el movimiento (owner-authority) para que no haya doble navegación.
-        if (IsOwner)
-            EnsureAgent();
+        // En instancias remotas (no-owner) nunca debemos tener cámara/listener activos (MPPM: rompe al host).
+        if (!IsOwner)
+        {
+            DisableCameraAndAudioForNonOwner();
+            return;
+        }
+
+        EnsureAgent();
+    }
+
+    void DisableCameraAndAudioForNonOwner()
+    {
+        foreach (var cam in GetComponentsInChildren<Camera>(true))
+            cam.enabled = false;
+
+        foreach (var listener in GetComponentsInChildren<AudioListener>(true))
+            listener.enabled = false;
+
+        // Si hay cámaras en hijos enteros, desactivarlas evita scripts colgando de esos GOs.
+        foreach (var cam in GetComponentsInChildren<Camera>(true))
+        {
+            if (cam != null && cam.gameObject != null)
+                cam.gameObject.SetActive(false);
+        }
     }
 
     public override void OnNetworkDespawn()

@@ -1,8 +1,7 @@
 ﻿using Unity.FPS.Game;
-
 using UnityEngine;
-
 using UnityEngine.InputSystem;
+using System.Reflection;
 
 
 
@@ -79,6 +78,13 @@ namespace Unity.FPS.Gameplay
         void Start()
 
         {
+            // En multiplayer (Netcode), solo el jugador local (owner) debe procesar input/cursor.
+            // Si esta instancia NO es owner, nos desactivamos para no interferir con el input global.
+            if (IsNetcodeOwnerPresentAndNotOwner(gameObject))
+            {
+                enabled = false;
+                return;
+            }
 
             m_PlayerCharacterController = GetComponent<PlayerCharacterController>();
 
@@ -177,6 +183,7 @@ namespace Unity.FPS.Gameplay
 
             {
 
+                if (m_MoveAction == null) return Vector3.zero;
                 var input = m_MoveAction.ReadValue<Vector2>();
 
                 Vector3 move = new Vector3(input.x, 0f, input.y);
@@ -211,6 +218,7 @@ namespace Unity.FPS.Gameplay
 
             
 
+            if (m_LookAction == null) return 0.0f;
             float input = m_LookAction.ReadValue<Vector2>().x;
 
 
@@ -251,6 +259,7 @@ namespace Unity.FPS.Gameplay
 
             
 
+            if (m_LookAction == null) return 0.0f;
             float input = m_LookAction.ReadValue<Vector2>().y;
 
 
@@ -289,7 +298,7 @@ namespace Unity.FPS.Gameplay
 
             {
 
-                return m_JumpAction.WasPressedThisFrame();
+                return m_JumpAction != null && m_JumpAction.WasPressedThisFrame();
 
             }
 
@@ -529,7 +538,7 @@ namespace Unity.FPS.Gameplay
 
             {
 
-                return m_ReloadAction.WasPressedThisFrame();
+                return m_ReloadAction != null && m_ReloadAction.WasPressedThisFrame();
 
             }
 
@@ -549,6 +558,7 @@ namespace Unity.FPS.Gameplay
 
             {
 
+                if (m_NextWeaponAction == null) return 0;
                 var input = m_NextWeaponAction.ReadValue<float>();
 
 
@@ -580,6 +590,8 @@ namespace Unity.FPS.Gameplay
             if (CanProcessInput())
 
             {
+
+                if (Keyboard.current == null) return 0;
 
                 if (Keyboard.current.digit1Key.wasPressedThisFrame)
 
@@ -623,6 +635,26 @@ namespace Unity.FPS.Gameplay
 
             return 0;
 
+        }
+
+        static bool IsNetcodeOwnerPresentAndNotOwner(GameObject go)
+        {
+            var t = System.Type.GetType("Unity.Netcode.NetworkObject, Unity.Netcode.Runtime");
+            if (t == null) return false;
+            var comp = go != null ? go.GetComponent(t) : null;
+            if (comp == null) return false;
+
+            var isSpawnedProp = t.GetProperty("IsSpawned", BindingFlags.Public | BindingFlags.Instance);
+            if (isSpawnedProp != null)
+            {
+                var spawned = (bool)isSpawnedProp.GetValue(comp);
+                if (!spawned) return false;
+            }
+
+            var isOwnerProp = t.GetProperty("IsOwner", BindingFlags.Public | BindingFlags.Instance);
+            if (isOwnerProp == null) return false;
+            bool isOwner = (bool)isOwnerProp.GetValue(comp);
+            return !isOwner;
         }
 
     }
