@@ -8,6 +8,7 @@ using TMPro;
 using System.Text;
 using UnityEngine.UI;
 using System;
+using UnityEngine.AI;
 
 public class NewMonoBehaviourScript : NetworkBehaviour
 {
@@ -26,6 +27,14 @@ public class NewMonoBehaviourScript : NetworkBehaviour
     [Tooltip("Escenas donde el jugador debe activarse (cámara, input, controller, etc.).")]
     [SerializeField] private string[] gameplaySceneNames = { "MainScene", "PrisonScene", "SecondaryScene" };
 
+    [Header("UCM_Bot autopilot")]
+    [Tooltip("Si el jugador local es UCM_Bot, desactiva control manual y lo mueve solo por NavMesh.")]
+    [SerializeField] bool enableUcmBotAutopilot = true;
+
+    [SerializeField] float ucmWanderRadius = 25f;
+    [SerializeField] float ucmRepathIntervalSeconds = 1.25f;
+    [SerializeField] float ucmStoppingDistance = 1.5f;
+
     [Header("Scoreboard HUD")]
     [SerializeField] private float scoreboardRefreshInterval = 0.25f;
     TextMeshProUGUI m_ScoreboardText;
@@ -34,6 +43,9 @@ public class NewMonoBehaviourScript : NetworkBehaviour
     AudioListener m_TemporaryAudioListener;
 
     static TMP_FontAsset s_CachedRobotoHudFont;
+    NavMeshAgent m_UcmAgent;
+    bool m_IsUcmAutopilot;
+    float m_NextUcmRepathTime;
 
     /// <summary>Misma fuente que Pause/Options en GameHUD (Roboto-Black SDF).</summary>
     static TMP_FontAsset ResolveGameHudFont()
@@ -143,6 +155,84 @@ public class NewMonoBehaviourScript : NetworkBehaviour
         EnsureAudioListener();
 
         EnsureScoreboardUI();
+
+        TryEnableUcmAutopilotIfNeeded();
+    }
+
+    bool IsUcmBotInstance()
+    {
+        // En runtime suele venir "UCM_Bot(Clone)"
+        return gameObject != null && gameObject.name.StartsWith("UCM_Bot", StringComparison.Ordinal);
+    }
+
+    void TryEnableUcmAutopilotIfNeeded()
+    {
+        if (!IsOwner) return;
+        if (!enableUcmBotAutopilot) return;
+        if (!IsUcmBotInstance()) return;
+
+        m_IsUcmAutopilot = true;
+
+        // Desactivamos control manual (pero dejamos cámara/vida/armas para ver lo que hace).
+        if (m_playerInputHandler != null) m_playerInputHandler.enabled = false;
+        if (m_playerCharacterController != null) m_playerCharacterController.enabled = false;
+        if (m_jetpack != null) m_jetpack.enabled = false;
+        if (m_playerinput != null) m_playerinput.enabled = false;
+        if (m_characterController != null) m_characterController.enabled = false;
+
+        if (m_UcmAgent == null)
+            m_UcmAgent = GetComponent<NavMeshAgent>();
+        if (m_UcmAgent == null)
+            m_UcmAgent = gameObject.AddComponent<NavMeshAgent>();
+
+        m_UcmAgent.enabled = true;
+        m_UcmAgent.stoppingDistance = Mathf.Max(0.25f, ucmStoppingDistance);
+        m_UcmAgent.autoBraking = true;
+
+        // Evita que el agente trate de “pelearse” con componentes desactivados.
+        m_UcmAgent.updatePosition = true;
+        m_UcmAgent.updateRotation = true;
+
+        m_NextUcmRepathTime = 0f;
+    }
+
+    void UpdateUcmAutopilot()
+    {
+        if (!m_IsUcmAutopilot) return;
+        if (!IsOwner) return;
+        if (m_UcmAgent == null || !m_UcmAgent.enabled) return;
+        if (!m_UcmAgent.isOnNavMesh) return;
+
+        if (Time.time >= m_NextUcmRepathTime)
+        {
+            m_NextUcmRepathTime = Time.time + Mathf.Max(0.1f, ucmRepathIntervalSeconds);
+
+            bool needsNewTarget = !m_UcmAgent.hasPath || m_UcmAgent.pathPending ||
+                                  m_UcmAgent.remainingDistance <= (m_UcmAgent.stoppingDistance + 0.35f);
+
+            if (needsNewTarget)
+            {
+                if (TryPickRandomNavMeshPoint(transform.position, Mathf.Max(2f, ucmWanderRadius), out var dest))
+                    m_UcmAgent.SetDestination(dest);
+            }
+        }
+    }
+
+    static bool TryPickRandomNavMeshPoint(Vector3 origin, float radius, out Vector3 result)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            var rnd = UnityEngine.Random.insideUnitSphere * radius;
+            var candidate = origin + rnd;
+            if (NavMesh.SamplePosition(candidate, out var hit, 2.0f, NavMesh.AllAreas))
+            {
+                result = hit.position;
+                return true;
+            }
+        }
+
+        result = origin;
+        return false;
     }
 
     void EnsureAudioListener()
@@ -184,6 +274,8 @@ public class NewMonoBehaviourScript : NetworkBehaviour
             else
                 EnsureAudioListener();
         }
+
+        UpdateUcmAutopilot();
 
         if (Time.unscaledTime < m_NextScoreboardRefresh) return;
         m_NextScoreboardRefresh = Time.unscaledTime + scoreboardRefreshInterval;
