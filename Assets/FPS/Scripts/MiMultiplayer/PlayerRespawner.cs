@@ -209,25 +209,62 @@ namespace Unity.FPS.Gameplay
 
             // Lista de jugadores actuales para evitar solapamiento (simple y barato).
             var players = Object.FindObjectsByType<PlayerCharacterController>(FindObjectsSortMode.None);
-            const float minDistance = 4.0f;
+            const float minDistance = 6.0f;
 
-            // Intentamos varios puntos aleatorios antes de rendirnos.
-            for (int attempt = 0; attempt < 24; attempt++)
+            // Elegimos el punto "mejor" (más lejos de cualquier jugador existente).
+            // Esto evita casos raros donde dos jugadores spawnean el mismo frame y el RNG elige igual.
+            float bestMinDist = float.NegativeInfinity;
+            GameObject best = null;
+            for (int s = 0; s < spawnPoints.Length; s++)
             {
-                int idx = Random.Range(0, spawnPoints.Length);
-                var sp = spawnPoints[idx];
+                var sp = spawnPoints[s];
+                if (sp == null) continue;
+
+                Vector3 candidate = sp.transform.position;
+                float closest = float.PositiveInfinity;
+
+                for (int i = 0; i < players.Length; i++)
+                {
+                    var p = players[i];
+                    if (p == null) continue;
+                    if (excludeSelf != null && p == excludeSelf)
+                        continue;
+
+                    float d = Vector3.Distance(p.transform.position, candidate);
+                    if (d < closest) closest = d;
+                }
+
+                // Si no hay jugadores, closest queda +inf: este punto es válido.
+                if (closest > bestMinDist)
+                {
+                    bestMinDist = closest;
+                    best = sp;
+                }
+            }
+
+            // Si el "mejor" aún está demasiado cerca, intentamos encontrar uno que cumpla el mínimo.
+            if (best != null && bestMinDist >= minDistance)
+            {
+                spawnPos = best.transform.position;
+                spawnRot = best.transform.rotation;
+                return;
+            }
+
+            for (int s = 0; s < spawnPoints.Length; s++)
+            {
+                var sp = spawnPoints[s];
                 if (sp == null) continue;
 
                 Vector3 candidate = sp.transform.position;
                 bool blocked = false;
-
                 for (int i = 0; i < players.Length; i++)
                 {
-                    if (players[i] == null) continue;
-                    if (excludeSelf != null && players[i] == excludeSelf)
+                    var p = players[i];
+                    if (p == null) continue;
+                    if (excludeSelf != null && p == excludeSelf)
                         continue;
 
-                    if (Vector3.Distance(players[i].transform.position, candidate) < minDistance)
+                    if (Vector3.Distance(p.transform.position, candidate) < minDistance)
                     {
                         blocked = true;
                         break;
@@ -242,12 +279,11 @@ namespace Unity.FPS.Gameplay
                 }
             }
 
-            // Fallback: cualquiera.
-            var fallback = spawnPoints[Random.Range(0, spawnPoints.Length)];
-            if (fallback != null)
+            // Fallback: el mejor que encontremos (aunque esté cerca).
+            if (best != null)
             {
-                spawnPos = fallback.transform.position;
-                spawnRot = fallback.transform.rotation;
+                spawnPos = best.transform.position;
+                spawnRot = best.transform.rotation;
             }
         }
     }

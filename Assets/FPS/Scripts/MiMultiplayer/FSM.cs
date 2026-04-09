@@ -37,6 +37,14 @@ public class FSM : NetworkBehaviour
             return;
         }
 
+        // Importante: si el prefab todavía tiene el script de jugador humano, éste puede reactivar controles y CC
+        // y acabar empujando/arrastrando a otros jugadores.
+        var humanController = GetComponent<NewMonoBehaviourScript>();
+        if (humanController != null) humanController.enabled = false;
+
+        var respawner = GetComponent<Unity.FPS.Gameplay.PlayerRespawner>();
+        if (respawner != null) respawner.enabled = false;
+
         m_Health = GetComponent<Health>();
         if (m_Health != null)
         {
