@@ -39,6 +39,10 @@ namespace Unity.FPS.Gameplay
 
         IEnumerator ServerInitialSpawnWhenPointsReady()
         {
+            // Stagger: reduce probabilidad de que 2 jugadores elijan el mismo RespawnPoint en el mismo frame.
+            // (Especialmente en MPPM / host+cliente entrando casi a la vez.)
+            yield return new WaitForSeconds(0.05f * (OwnerClientId % 5));
+
             const int maxWaits = 180; // ~3 s a 60 fps; suficiente para carga de escena
             for (int w = 0; w < maxWaits; w++)
             {
@@ -205,10 +209,10 @@ namespace Unity.FPS.Gameplay
 
             // Lista de jugadores actuales para evitar solapamiento (simple y barato).
             var players = Object.FindObjectsByType<PlayerCharacterController>(FindObjectsSortMode.None);
-            const float minDistance = 2.0f;
+            const float minDistance = 4.0f;
 
             // Intentamos varios puntos aleatorios antes de rendirnos.
-            for (int attempt = 0; attempt < 12; attempt++)
+            for (int attempt = 0; attempt < 24; attempt++)
             {
                 int idx = Random.Range(0, spawnPoints.Length);
                 var sp = spawnPoints[idx];
