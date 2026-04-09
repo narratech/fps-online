@@ -1,0 +1,10 @@
+{
+    "resultadosPartida": [
+        {
+            "clientId": 0,
+            "playerName": "H",
+            "votosHumano": [],
+            "votosRobot": []
+        }
+    ]
+}

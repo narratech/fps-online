@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement; // ¡NUEVO! Necesario para saber cuándo carg
 using TMPro;
 using System.Text;
 using UnityEngine.UI;
+using System;
 
 public class NewMonoBehaviourScript : NetworkBehaviour
 {
@@ -31,6 +32,26 @@ public class NewMonoBehaviourScript : NetworkBehaviour
     float m_NextScoreboardRefresh;
     readonly StringBuilder m_Sb = new StringBuilder(512);
     AudioListener m_TemporaryAudioListener;
+
+    static TMP_FontAsset s_CachedRobotoHudFont;
+
+    /// <summary>Misma fuente que Pause/Options en GameHUD (Roboto-Black SDF).</summary>
+    static TMP_FontAsset ResolveGameHudFont()
+    {
+        if (s_CachedRobotoHudFont != null) return s_CachedRobotoHudFont;
+        var fonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+        for (int i = 0; i < fonts.Length; i++)
+        {
+            var f = fonts[i];
+            if (f != null && string.Equals(f.name, "Roboto-Black SDF", StringComparison.Ordinal))
+            {
+                s_CachedRobotoHudFont = f;
+                break;
+            }
+        }
+
+        return s_CachedRobotoHudFont;
+    }
 
     void Awake()
     {
@@ -176,7 +197,6 @@ public class NewMonoBehaviourScript : NetworkBehaviour
         var allTags = FindObjectsByType<PlayerNameTag>(FindObjectsSortMode.None);
 
         m_Sb.Clear();
-        m_Sb.AppendLine("MARCADOR");
         for (int i = 0; i < allTags.Length; i++)
         {
             var t = allTags[i];
@@ -185,9 +205,9 @@ public class NewMonoBehaviourScript : NetworkBehaviour
                 name = $"Player {t.OwnerClientId}";
 
             m_Sb.Append(name);
-            m_Sb.Append("  K:");
+            m_Sb.Append("  Kills: ");
             m_Sb.Append(t.Kills.Value);
-            m_Sb.Append("  D:");
+            m_Sb.Append("  Deaths: ");
             m_Sb.Append(t.Deaths.Value);
             m_Sb.AppendLine();
         }
@@ -222,13 +242,20 @@ public class NewMonoBehaviourScript : NetworkBehaviour
         rt.anchorMin = new Vector2(1f, 1f);
         rt.anchorMax = new Vector2(1f, 1f);
         rt.pivot = new Vector2(1f, 1f);
-        rt.anchoredPosition = new Vector2(-20f, -20f);
-        rt.sizeDelta = new Vector2(520f, 420f);
+        rt.anchoredPosition = new Vector2(-16f, -16f);
+        rt.sizeDelta = new Vector2(640f, 420f);
 
         m_ScoreboardText = go.AddComponent<TextMeshProUGUI>();
-        m_ScoreboardText.fontSize = 22;
-        m_ScoreboardText.enableWordWrapping = false;
-        m_ScoreboardText.alignment = TextAlignmentOptions.TopLeft;
-        m_ScoreboardText.text = "MARCADOR\n";
+        var hudFont = ResolveGameHudFont();
+        if (hudFont != null)
+            m_ScoreboardText.font = hudFont;
+        else if (TMP_Settings.defaultFontAsset != null)
+            m_ScoreboardText.font = TMP_Settings.defaultFontAsset;
+
+        m_ScoreboardText.fontSize = 18;
+        m_ScoreboardText.fontStyle = FontStyles.Normal;
+        m_ScoreboardText.enableWordWrapping = true;
+        m_ScoreboardText.alignment = TextAlignmentOptions.TopRight;
+        m_ScoreboardText.text = "";
     }
 }

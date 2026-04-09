@@ -71,7 +71,7 @@ namespace HelloWorld
             lblError = root.Q<Label>("LblError");
 
             // Limitamos el campo de texto y recuperamos el último nombre guardado
-            SetNicknameLimit(12); // Puedes cambiar el 12 por lo que prefieras
+            SetNicknameLimit(48);
             if (inputNickname != null && PlayerPrefs.HasKey("PlayerName"))
             {
                 inputNickname.value = PlayerPrefs.GetString("PlayerName");

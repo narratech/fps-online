@@ -9,7 +9,7 @@ using Unity.FPS.Game;
 /// </summary>
 public class PlayerStats : NetworkBehaviour
 {
-    public NetworkVariable<FixedString32Bytes> PlayerName = new(
+    public NetworkVariable<FixedString64Bytes> PlayerName = new(
         "",
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
@@ -56,7 +56,7 @@ public class PlayerStats : NetworkBehaviour
             }
             else
             {
-                PlayerName.Value = new FixedString32Bytes($"Player {OwnerClientId}");
+                PlayerName.Value = new FixedString64Bytes($"Player {OwnerClientId}");
             }
         }
     }
@@ -75,7 +75,7 @@ public class PlayerStats : NetworkBehaviour
         base.OnNetworkDespawn();
     }
 
-    void OnNameChangedServer(FixedString32Bytes prev, FixedString32Bytes next)
+    void OnNameChangedServer(FixedString64Bytes prev, FixedString64Bytes next)
     {
         if (!IsServer) return;
         PlayerName.Value = next;

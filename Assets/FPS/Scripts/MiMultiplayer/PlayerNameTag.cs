@@ -8,8 +8,8 @@ public class PlayerNameTag : NetworkBehaviour
     [Tooltip("Arrastra aquí el componente TextMeshPro que está sobre la cabeza")]
     public TextMeshProUGUI NameText;
 
-    // Esta es la variable mágica de red que guarda el nombre de hasta 32 letras
-    public NetworkVariable<FixedString32Bytes> NetworkedName = new NetworkVariable<FixedString32Bytes>(
+    // Nombre en red (hasta ~60 caracteres ASCII; alineado con el límite del menú).
+    public NetworkVariable<FixedString64Bytes> NetworkedName = new NetworkVariable<FixedString64Bytes>(
         "",
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner);
@@ -50,7 +50,7 @@ public class PlayerNameTag : NetworkBehaviour
         {
             // Si somos el dueño, leemos nuestro nombre guardado y lo subimos a la red
             string savedName = PlayerPrefs.GetString("PlayerName", "Player");
-            NetworkedName.Value = new FixedString32Bytes(savedName);
+            NetworkedName.Value = new FixedString64Bytes(savedName);
             NameText.gameObject.SetActive(false);
         }
         else
@@ -65,7 +65,7 @@ public class PlayerNameTag : NetworkBehaviour
         NetworkedName.OnValueChanged -= OnNameChanged;
     }
 
-    void OnNameChanged(FixedString32Bytes previousValue, FixedString32Bytes newValue)
+    void OnNameChanged(FixedString64Bytes previousValue, FixedString64Bytes newValue)
     {
         UpdateNameTag(newValue.ToString());
     }
