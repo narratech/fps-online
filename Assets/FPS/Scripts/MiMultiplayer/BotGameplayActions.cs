@@ -6,7 +6,7 @@ using UnityEngine.AI;
 /// <summary>
 /// Gestor de acciones para el bot jugador (<c>UCM_Bot</c>).
 /// <para>
-/// Propósito pedagógico: centralizar en un solo sitio llamadas con nombre claro ("ir aquí", "disparar",
+/// Propósito: Ejemplo de clase que centraliza en un solo sitio llamadas con nombre claro ("ir aquí", "disparar",
 /// "cambiar arma", etc.) para que la <see cref="FSM"/> (u otra IA) no tenga que conocer todos los
 /// detalles de <see cref="PlayerCharacterController"/>, <see cref="PlayerWeaponsManager"/>, etc.
 /// </para>
@@ -15,15 +15,15 @@ using UnityEngine.AI;
 /// <see cref="PlayerInputHandler"/> y <see cref="PlayerWeaponsManager"/> en <c>Awake</c> para que no
 /// compitan con el teclado/ratón. Eso retrasa la inicialización de armas hasta que alguien vuelva a
 /// habilitar <see cref="PlayerWeaponsManager"/> (por ejemplo desde
-/// <see cref="InitializeWeaponSystemsIfNeeded"/>). Sin armas inicializadas, los métodos de combate
-/// no tendrán efecto.
+/// <see cref="InitializeWeaponSystemsIfNeeded"/>). ¡Ojo, sin armas inicializadas, los métodos de combate
+/// no tendrán efecto!
 /// </para>
 /// <para>
 /// <b>Movimiento:</b> hoy el bot se desplaza en servidor con <see cref="NavMeshAgent"/> (autoridad de
 /// transform en red para bots). Los métodos de navegación de esta clase encapsulan ese camino.
 /// Si en el futuro queréis controlar al personaje igual que un humano (<see cref="CharacterController"/>),
 /// tendréis que inyectar "input sintético" (ampliando <see cref="PlayerInputHandler"/>) o duplicar
-/// parte de la física; eso se deja como ejercicio — aquí solo dejamos la API y comentarios guía.
+/// parte de la física 
 /// </para>
 /// </summary>
 [DisallowMultipleComponent]
@@ -50,7 +50,7 @@ public class BotGameplayActions : MonoBehaviour
     /// <summary>Referencia al agente de navegación del bot (puede ser null antes de inicializar).</summary>
     public NavMeshAgent NavMeshAgent => m_NavMeshAgent;
 
-    /// <summary>Vida del personaje; útil para transiciones en la FSM.</summary>
+    /// <summary>Vida del personaje; útil para transiciones.</summary>
     public Health Health => m_Health;
 
     void Awake()
@@ -67,7 +67,7 @@ public class BotGameplayActions : MonoBehaviour
     }
 
     /// <summary>
-    /// Llamar desde la FSM en el servidor cuando queráis asegurar que el stack de armas está listo
+    /// Llamar desde la IA en el servidor cuando queráis asegurar que el stack de armas está listo
     /// para usar <see cref="SwitchToWeaponSlot"/> / <see cref="TryFireCurrentWeaponPrimary"/>.
     /// </summary>
     public void InitializeWeaponSystemsIfNeeded()
@@ -316,12 +316,12 @@ public class BotGameplayActions : MonoBehaviour
             w.StartReloadAnimation();
     }
 
-    // --- "Intención" de movimiento estilo FPS (para que los alumnos conecten después) ---------
+    // --- "Intención" de movimiento estilo FPS (útil para conectar la IA aquí) ---------
 
     /// <summary>
     /// Valores que un humano produce con WASD + sprint + agacharse. El proyecto <i>no</i> los lee
     /// todavía desde aquí: están expuestos para que podáis redirigirlos a
-    /// <see cref="PlayerInputHandler"/> en un trabajo futuro.
+    /// <see cref="PlayerInputHandler"/> en un futuro, cuando queráis hilar muy fino para IMITAR la forma de controlar al personaje de un humano.
     /// </summary>
     public struct LocomotionIntent
     {
@@ -356,7 +356,7 @@ public class BotGameplayActions : MonoBehaviour
         };
     }
 
-    // --- Consultas rápidas -------------------------------------------------------------------
+    // --- Consultas rápidas (podéis añadir más si lo consideráis necesario -------------------------------------------------------------------
 
     /// <summary>¿Sigue vivo el bot?</summary>
     public bool IsAlive()

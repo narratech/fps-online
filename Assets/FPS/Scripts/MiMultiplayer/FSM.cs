@@ -6,27 +6,24 @@ using Unity.FPS.Gameplay;
 using Unity.FPS.Game;
 
 // =================================================================================================
-// FSM — Máquina de estados MUY simplificada para UCM_Bot (plantilla para alumnos)
+// FSM — Plantilla de máquina de estados SIMPLIFICADA Y A FUEGO EN EL CÓDIGO para UCM_Bot  
 // =================================================================================================
 // Objetivo:
 //   • Separar "qué decide la IA" (esta clase) de "cómo se ejecutan las acciones en el juego"
 //     (ver BotGameplayActions).
-//   • Dejar el camino claro para que podáis sustituir el comportamiento de Wander por persecución,
-//     cobertura, captura de flags, etc.
 //
-// Red (NGO) — recordatorio:
+// Red (NGO) — Aclaraciones:
 //   • La lógica de este bot corre en el SERVIDOR (IsServer). Los clientes solo ven el resultado
 //     replicado (NetworkTransform server-authoritative en bots).
-//   • No activéis cámaras ni AudioListener en instancias que no sean del jugador local.
+//   • No hay que activar cámaras ni AudioListener en instancias que no sean del jugador local.
 //
-// Flujo recomendado para ampliar:
-//   1) Añadir estados al enum BotState.
-//   2) En Update (servidor), hacer transiciones según salud, distancia a enemigos, etc.
-//   3) Delegar en m_Actions: moverse, mirar, disparar, cambiar arma…
+// Vuestra tarea es escribir código aquí de una verdadera máquina de estados jerárquica, :
+// que cargue la información de estados, transiciones, condiciones (según salud, según distancia a enemigos, etc.)
+// y cuando haya que realizar alguna acción delegar en m_Actions.
 // =================================================================================================
 
 /// <summary>
-/// Estados de alto nivel del bot. Ampliad el enum según vuestra práctica (Patrol, Chase, Flee…).
+/// Estados de alto nivel del bot (ej. Patrol, Chase, Flee…).
 /// </summary>
 public enum BotState
 {
@@ -36,7 +33,7 @@ public enum BotState
     /// <summary>Comportamiento de ejemplo: deambular por el mapa eligiendo puntos aleatorios.</summary>
     Wandering,
 
-    /// <summary>Podéis usar este estado cuando CurrentHealth &lt;= 0 o cuando queráis bloquear la IA.</summary>
+    /// <summary>Podéis usar este estado cuando CurrentHealth &lt;= 0 o cuando queráis bloquear la IA por otra razón.</summary>
     Dead
 }
 
@@ -69,7 +66,7 @@ public class FSM : NetworkBehaviour
     void Awake()
     {
         // El bot no debe competir con el teclado/ratón del jugador humano.
-        // ALUMNOS: cuando implementéis disparo automático, podréis volver a habilitar
+        // Pista: cuando implementéis disparo automático, podréis volver a habilitar
         // PlayerWeaponsManager desde BotGameplayActions.InitializeWeaponSystemsIfNeeded().
         DisableHumanInputAndWeaponStack();
     }
@@ -87,7 +84,7 @@ public class FSM : NetworkBehaviour
             m_Health.OnHealed += OnBotHealed;
         }
 
-        // Cámaras y listeners solo en el owner (en bots suele ser irrelevante, pero evita conflictos MPPM).
+        // Cámaras y listeners solo en el owner (en bots suele ser irrelevante, pero evita conflictos de tipo MPPM).
         if (!IsOwner)
             DisableCameraAndAudioForNonOwner();
 
@@ -110,7 +107,7 @@ public class FSM : NetworkBehaviour
 
     /// <summary>
     /// El host spawnea el player object en cuanto arranca la red; la escena de juego (NavMesh, ActorsManager)
-    /// carga justo después. Esperamos a que existan antes de crear el NavMeshAgent (evita el error de Unity).
+    /// carga justo después. Esperamos a que existan antes de crear el NavMeshAgent.
     /// </summary>
     IEnumerator ServerInitBotWhenGameplaySceneReady()
     {
@@ -200,7 +197,7 @@ public class FSM : NetworkBehaviour
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Máquina de estados — núcleo
+    // Máquina de estados — Esto viene a ser núcleo de la IA, lo que tendréis que cambiar.
     // ---------------------------------------------------------------------------------------------
 
     void Update()
@@ -223,12 +220,12 @@ public class FSM : NetworkBehaviour
                 // No mover ni decidir: PlayerRespawner gestionará el revive en servidor.
                 break;
 
-                // ALUMNOS: añadir aquí case BotState.Chase: TickChase(); break;
+                // Aquí se podrían añadir otros estados como BotState.Chase: TickChase(); break;
         }
     }
 
     /// <summary>
-    /// Ejemplo mínimo: deambular. Sustituidlo por lógica más rica (waypoints, Blackboard, Utility AI…).
+    /// Ejemplo mínimo: deambular. Es un ejemplo sencillote que deberá sustituirse por lógica más rica de una verdadera máquina de estados jerárquica.
     /// </summary>
     void TickWanderingExample()
     {
@@ -294,7 +291,7 @@ public class FSM : NetworkBehaviour
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Utilidades NavMesh (podrían moverse a BotGameplayActions si preferís cero lógica aquí)
+    // Utilidades NavMesh (podrían moverse a BotGameplayActions si preferís no tener nada de lógica aquí)
     // ---------------------------------------------------------------------------------------------
 
     static bool TryPickRandomNavMeshPoint(Vector3 origin, float radius, out Vector3 result)
