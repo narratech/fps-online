@@ -1,12 +1,23 @@
 using Unity.Netcode;
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using Unity.FPS.Game;
 
 namespace Unity.FPS.Gameplay
 {
     public class PlayerRespawner : NetworkBehaviour
     {
+        [Header("Spawn en suelo")]
+        [Tooltip("Capas contra las que proyectamos un rayo hacia abajo para alinear los pies al suelo (suelo/escenario).")]
+        [SerializeField] LayerMask m_SpawnGroundLayers = Physics.DefaultRaycastLayers;
+
+        [Tooltip("Distancia máxima del rayo hacia abajo desde el punto de spawn (marcador puede estar flotando).")]
+        [SerializeField] float m_GroundSnapMaxDistance = 48f;
+
+        [Tooltip("Pequeño offset por encima del suelo para evitar penetraciones que disparen overlap recovery (personaje 'subido' al techo).")]
+        [SerializeField] float m_GroundSnapYOffset = 0.08f;
+
         private Health m_Health;
         private PlayerCharacterController m_CharacterController;
         PlayerNameTag m_LastPlayerAttacker;
@@ -66,7 +77,11 @@ namespace Unity.FPS.Gameplay
             if (cc != null) cc.enabled = false;
 
             TryMoveToRandomSpawnPointAvoidingPlayers();
+            var grounded = transform.position;
+            SnapSpawnPositionToGround(ref grounded);
+            transform.position = grounded;
 
+            Physics.SyncTransforms();
             if (cc != null) cc.enabled = true;
         }
 
@@ -180,10 +195,13 @@ namespace Unity.FPS.Gameplay
             // Este RPC solo responde al cliente que lo pidió, así que si NO revivimos también en el servidor,
             // el Health del servidor se queda "muerto" y deja de disparar OnDie en muertes posteriores.
             // (Eso rompe el contador de kills/muertes en partidas host+clientes).
+            SnapSpawnPositionToGround(ref spawnPos);
             transform.position = spawnPos;
             transform.rotation = spawnRot;
             m_LastPlayerAttacker = null;
             if (m_Health != null) m_Health.Revive();
+
+            Physics.SyncTransforms();
 
             // 3. Informamos a TODOS los clientes para que el respawn sea visible también en remotos.
             RespawnClientRpc(spawnPos, spawnRot);
@@ -199,8 +217,12 @@ namespace Unity.FPS.Gameplay
             if (cc != null) cc.enabled = false;
 
             // 2. Nos movemos a la coordenada que nos dijo el servidor
-            transform.position = spawnPosition;
+            var pos = spawnPosition;
+            SnapSpawnPositionToGround(ref pos);
+            transform.position = pos;
             transform.rotation = spawnRotation;
+
+            Physics.SyncTransforms();
 
             // 3. Volvemos a encender el motor físico
             if (cc != null) cc.enabled = true;
@@ -219,6 +241,24 @@ namespace Unity.FPS.Gameplay
             transform.rotation = spawnRot;
         }
 
+        /// <summary>
+        /// Alinea la altura Y del spawn con el suelo bajo el marcador. Evita que el CharacterController,
+        /// al reactivarse, use overlap recovery y empuje el cuerpo hacia arriba (sensación de estar pegado al "techo").
+        /// </summary>
+        void SnapSpawnPositionToGround(ref Vector3 worldPos)
+        {
+            var cc = GetComponent<CharacterController>();
+            float footHeight = cc != null ? Mathf.Max(cc.skinWidth, m_GroundSnapYOffset) : m_GroundSnapYOffset;
+
+            // Origen ligeramente por encima del marcador para no impactar en el suelo desde dentro del suelo.
+            Vector3 origin = worldPos + Vector3.up * 0.35f;
+            if (Physics.Raycast(origin, Vector3.down, out var hit, m_GroundSnapMaxDistance, m_SpawnGroundLayers,
+                    QueryTriggerInteraction.Ignore))
+            {
+                worldPos = new Vector3(worldPos.x, hit.point.y + footHeight, worldPos.z);
+            }
+        }
+
         /// <param name="excludeSelf">
         /// No tratar nuestra posición actual como "otro jugador" al comprobar solapes (evita que el host,
         /// aún en la posición por defecto del NetworkManager, bloquee todos los puntos cercanos al centro).
@@ -232,84 +272,72 @@ namespace Unity.FPS.Gameplay
             if (spawnPoints == null || spawnPoints.Length == 0)
                 return;
 
-            // Lista de jugadores actuales para evitar solapamiento (simple y barato).
             var players = Object.FindObjectsByType<PlayerCharacterController>(FindObjectsSortMode.None);
             const float minDistance = 6.0f;
 
-            // Elegimos el punto "mejor" (más lejos de cualquier jugador existente).
-            // Esto evita casos raros donde dos jugadores spawnean el mismo frame y el RNG elige igual.
-            float bestMinDist = float.NegativeInfinity;
-            GameObject best = null;
-            for (int s = 0; s < spawnPoints.Length; s++)
+            // Orden aleatorio: si solo hay un jugador, antes el algoritmo determinista acababa siempre
+            // eligiendo el mismo RespawnPoint (el "mejor" según recorrido del array).
+            var indices = new List<int>(spawnPoints.Length);
+            for (int i = 0; i < spawnPoints.Length; i++)
             {
-                var sp = spawnPoints[s];
-                if (sp == null) continue;
-
-                Vector3 candidate = sp.transform.position;
-                float closest = float.PositiveInfinity;
-
-                for (int i = 0; i < players.Length; i++)
-                {
-                    var p = players[i];
-                    if (p == null) continue;
-                    if (excludeSelf != null && p == excludeSelf)
-                        continue;
-
-                    float d = Vector3.Distance(p.transform.position, candidate);
-                    if (d < closest) closest = d;
-                }
-
-                // Si no hay jugadores, closest queda +inf: este punto es válido.
-                if (closest > bestMinDist)
-                {
-                    bestMinDist = closest;
-                    best = sp;
-                }
+                if (spawnPoints[i] != null)
+                    indices.Add(i);
             }
 
-            // Si el "mejor" aún está demasiado cerca, intentamos encontrar uno que cumpla el mínimo.
-            if (best != null && bestMinDist >= minDistance)
+            if (indices.Count == 0)
+                return;
+
+            for (int i = indices.Count - 1; i > 0; i--)
             {
-                spawnPos = best.transform.position;
-                spawnRot = best.transform.rotation;
+                int j = Random.Range(0, i + 1);
+                (indices[i], indices[j]) = (indices[j], indices[i]);
+            }
+
+            // 1) Entre los no bloqueados (≥ minDistance a otros), elegir uno al azar.
+            var candidatesOk = new List<int>();
+            for (int k = 0; k < indices.Count; k++)
+            {
+                int s = indices[k];
+                var sp = spawnPoints[s];
+                Vector3 candidate = sp.transform.position;
+                if (IsSpawnBlockedByPlayers(candidate, players, excludeSelf, minDistance))
+                    continue;
+                candidatesOk.Add(s);
+            }
+
+            if (candidatesOk.Count > 0)
+            {
+                int pick = candidatesOk[Random.Range(0, candidatesOk.Count)];
+                var chosen = spawnPoints[pick];
+                spawnPos = chosen.transform.position;
+                spawnRot = chosen.transform.rotation;
                 return;
             }
 
-            for (int s = 0; s < spawnPoints.Length; s++)
+            // 2) Si todos están "bloqueados", cualquier punto sirve: elige al azar entre todos.
+            int fallback = indices[Random.Range(0, indices.Count)];
             {
-                var sp = spawnPoints[s];
-                if (sp == null) continue;
+                var sp = spawnPoints[fallback];
+                spawnPos = sp.transform.position;
+                spawnRot = sp.transform.rotation;
+            }
+        }
 
-                Vector3 candidate = sp.transform.position;
-                bool blocked = false;
-                for (int i = 0; i < players.Length; i++)
-                {
-                    var p = players[i];
-                    if (p == null) continue;
-                    if (excludeSelf != null && p == excludeSelf)
-                        continue;
+        static bool IsSpawnBlockedByPlayers(Vector3 candidateWorld, PlayerCharacterController[] players,
+            PlayerCharacterController excludeSelf, float minDistance)
+        {
+            for (int i = 0; i < players.Length; i++)
+            {
+                var p = players[i];
+                if (p == null) continue;
+                if (excludeSelf != null && p == excludeSelf)
+                    continue;
 
-                    if (Vector3.Distance(p.transform.position, candidate) < minDistance)
-                    {
-                        blocked = true;
-                        break;
-                    }
-                }
-
-                if (!blocked)
-                {
-                    spawnPos = candidate;
-                    spawnRot = sp.transform.rotation;
-                    return;
-                }
+                if (Vector3.Distance(p.transform.position, candidateWorld) < minDistance)
+                    return true;
             }
 
-            // Fallback: el mejor que encontremos (aunque esté cerca).
-            if (best != null)
-            {
-                spawnPos = best.transform.position;
-                spawnRot = best.transform.rotation;
-            }
+            return false;
         }
     }
 }
