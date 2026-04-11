@@ -1,0 +1,28 @@
+{
+    "resultadosPartida": [
+        {
+            "clientId": 0,
+            "playerName": "Host",
+            "votosHumano": [],
+            "votosRobot": []
+        },
+        {
+            "clientId": 1,
+            "playerName": "C2",
+            "votosHumano": [],
+            "votosRobot": []
+        },
+        {
+            "clientId": 2,
+            "playerName": "C3",
+            "votosHumano": [],
+            "votosRobot": []
+        },
+        {
+            "clientId": 3,
+            "playerName": "C4",
+            "votosHumano": [],
+            "votosRobot": []
+        }
+    ]
+}
