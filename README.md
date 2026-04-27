@@ -8,7 +8,7 @@ Para poder hacer pruebas de multijugador desde Unity, que es mucho más cómodo 
 
 ## FPS Microgame
 
-Asumimos que la UPV ha empezado trabajando sobre la plantilla de aprendizaje FPS Microgame, de la propia Unity Technologies.
+Asumimos que la UPV ha empezado trabajando sobre la plantilla de aprendizaje [FPS Microgame](https://learn.unity.com/project/fps-template), de la propia Unity Technologies.
 
 ### Descripción
 
