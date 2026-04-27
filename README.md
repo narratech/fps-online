@@ -14,7 +14,146 @@ Asumimos que la UPV ha empezado trabajando sobre la plantilla de aprendizaje [FP
 
 ### Clases y sus relaciones
 
-## FPS Online
+```mermaid
+classDiagram
+    direction TB
+
+    class EventManager {
+        <<static>>
+        +AddListener()
+        +Broadcast()
+        +RemoveListener()
+    }
+
+    class GameFlowManager {
+        +EndGame()
+    }
+
+    class ObjectiveManager {
+        +Update loop objectives
+    }
+
+    class ActorsManager {
+        +Actors
+        +Player
+    }
+
+    class Actor {
+        +Affiliation
+        +AimPoint
+    }
+
+    class Health {
+        +TakeDamage()
+        +Heal()
+    }
+
+    class Damageable {
+        +InflictDamage()
+    }
+
+    class PlayerCharacterController {
+        +movement, jump, fall damage
+    }
+
+    class PlayerInputHandler {
+        +GetMoveInput()
+        +GetFireInput()
+    }
+
+    class PlayerWeaponsManager {
+        +SwitchWeapon
+        +Aiming FOV
+    }
+
+    class Jetpack {
+        +fuel, thrust
+    }
+
+    class WeaponController {
+        +ShootType
+        +ammo, charge
+    }
+
+    class ProjectileBase {
+        +Shoot()
+    }
+
+    class ProjectileStandard {
+        +hit, damage
+    }
+
+    class DamageArea {
+        +InflictDamageInArea()
+    }
+
+    class EnemyController {
+        +patrol, weapons, death
+    }
+
+    class DetectionModule {
+        +HandleTargetDetection()
+    }
+
+    class NavigationModule {
+        +Nav tuning
+    }
+
+    class EnemyMobile
+    class EnemyTurret
+
+    class EnemyManager {
+        +RegisterEnemy
+    }
+
+    class Objective {
+        <<abstract>>
+        +CompleteObjective()
+    }
+
+    class ObjectiveKillEnemies
+    class ObjectiveReachPoint
+    class ObjectivePickupItem
+
+    class Pickup {
+        +OnPicked()
+    }
+
+    GameFlowManager ..> EventManager : escucha
+    ObjectiveManager ..> Objective : lista
+    ObjectiveManager ..> EventManager : victoria
+    PlayerCharacterController --> PlayerInputHandler
+    PlayerCharacterController --> PlayerWeaponsManager
+    PlayerCharacterController --> Health
+    PlayerCharacterController --> Actor
+    Jetpack --> PlayerCharacterController
+    Jetpack --> PlayerInputHandler
+    PlayerWeaponsManager --> PlayerInputHandler
+    PlayerWeaponsManager --> WeaponController
+    WeaponController --> ProjectileBase
+    ProjectileStandard --|> ProjectileBase
+    ProjectileStandard --> DamageArea
+    Damageable --> Health
+    Actor --> ActorsManager : registro
+    EnemyController --> Health
+    EnemyController --> Actor
+    EnemyController --> DetectionModule
+    EnemyController --> NavigationModule
+    EnemyController --> WeaponController
+    EnemyMobile --> EnemyController
+    EnemyTurret --> EnemyController
+    EnemyController --> EnemyManager
+    Objective ..> EventManager : HUD / mensajes
+    ObjectiveKillEnemies --|> Objective
+    ObjectiveReachPoint --|> Objective
+    ObjectivePickupItem --|> Objective
+    Pickup ..> EventManager : PickupEvent
+    DetectionModule --> ActorsManager
+```
+
+## FPS UPV
+
+La versión multijugador ha sido desarrollada por el equipo de la UPV y se llama FPS-UPV, cuyo ZIP puede descargarse del [sitio web de la competición Bot Prize](https://botprize2026.ai2.upv.es/) del congreso [Conference on Games 2026](https://cog2026.fdi.ucm.es/).
 
 ### Descripción
 
