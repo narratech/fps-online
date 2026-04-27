@@ -6,11 +6,23 @@ Se ha borrado la plantilla de documentación que venía originalmente con el rep
 
 Para poder hacer pruebas de multijugador desde Unity, que es mucho más cómodo que andar creando ejecutables todo el rato, hay que ir a Window > Multiplayer > Multiplayer Play Mode y marcar que queréis al menos un virtual player (Player 2). Se os abrirá una segunda ventana de juego y al dar a Play podréis jugar simultáneamente con las dos ventanas.
 
-## Información básica
+## FPS Microgame
+
+Asumimos que la UPV ha empezado trabajando sobre la plantilla de aprendizaje FPS Microgame, de la propia Unity Technologies.
+
+### Descripción
+
+### Clases y sus relaciones
+
+## FPS Online
+
+### Descripción
+
+### Clases y sus relaciones
 
 *Human_Prefab* representa al jugador humano y *UCM_Bot* es la IA que hay que programar si se quiere tener un bot contra el que enfrentarse.
 
-### Human_Prefab
+#### Human_Prefab
 Ruta: Assets/FPS/Scripts/MiMultiplayer/Human_Prefab.prefab
 
 Es el “paquete completo” del jugador: control FPS, cámara, armas, vida/daño y los componentes oficiales de Netcode que permiten hacer multijugador en Unity.
@@ -31,7 +43,7 @@ Lo más relevante que puede encontrarse en la raíz de este prefab es esto:
 * CharacterController: componente nativo de Unity para mover un “personaje tipo cápsula” en el mundo sin usar un Rigidbody. Gestiones colisiones, deslizamiento, movimiento 'cinemático', grounding básico... pero no hace nada más.
 * PlayerCharacterController: Script de este proyecto que hace las veces de MENTE del CharacterController, lee la entrada con PlayerInputHandler, y lo convierte en movimiento, rotación, coordina la cámara, la animación, está pendiente de la salud, muerte, apuntado, etc. 
 
-### UCM_Bot
+#### UCM_Bot
 Ruta: Assets/FPS/Scripts/MiMultiplayer/UCM_Bot.prefab
 
 En UCM_Bot encontramos componentes muy parecidos, aunque se ha añadido FSM como ejemplo de dónde podría ir una máquina de estados que tome las decisiones de ese bot (hay que sustituir COMPLETAMENTE todo ese código), y BotGameplayActions para hacer las veces de gestor de acciones, aunque también hace cosas como crear el componente NavMeshAgent en caso de que no lo tenga (que de hecho no lo tiene añadido ahora mismo).
