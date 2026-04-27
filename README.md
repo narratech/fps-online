@@ -8,7 +8,30 @@ Para poder hacer pruebas de multijugador desde Unity, que es mucho más cómodo 
 
 ## FPS Microgame
 
-Asumimos que la UPV ha empezado trabajando sobre la plantilla de aprendizaje [FPS Microgame](https://learn.unity.com/project/fps-template), de la propia Unity Technologies.
+Asumimos que la UPV ha empezado trabajando sobre la plantilla de aprendizaje [FPS Microgame](https://learn.unity.com/project/fps-template), de la propia Unity Technologies. Al menos en su última versión esta plantilla es un pequeño juego de disparos en primera persona para un jugador con escenas de victoria/derrota, objetivos, enemigos móviles (hover bots) y torretas, armas variadas y hasta un tutorial embebido (porque está pensado como material para aprender a desarrollar en Unity).
+
+Se trata de una experiencia de acción en primera persona, pensada como plantilla jugable y didáctica: un nivel cerrado donde avanzas, combates y cumples metas hasta ganar o perder. El propósito es ofrecer un bucle de juego completo (moverse, disparar, recoger cosas, completar objetivos, pantalla final, etc.) que sirva de base para aprender o para construir encima un FPS propio.
+
+Cuando juegas apareces en un escenario 3D en vista en primera persona. Tu personaje recorre el entorno, esquiva o enfrenta enemigos y progresa cumpliendo condiciones de misión (por ejemplo las misiones podrían ser eliminar enemigos, llegar a un cierto punto o interactuar con un objeto clave). Si tu salud cae a cero, la partida termina en derrota; si completas todo lo que la misión exige, ganas y pasas a una pantalla de victoria.
+
+Las mecánicas principales son:
+* Desplazamiento: caminar en el suelo, correr más rápido, agacharse (menos perfil y movimiento más lento), saltar y moverse en el aire con inercia propia del salto.
+* Combate: varias armas con comportamientos distintos (disparo simple, ráfaga o disparo que se carga antes de soltar); apuntar suele acercar la “vista” y estabilizar la puntería; hay munición y recarga. Algunas armas pueden sobrecalentarse visual y sonoramente si se abusa del disparo.
+Daño y supervivencia: recibes daño de enemigos, explosiones de área o caídas muy bruscas; puedes curarte con objetos del escenario.
+Progresión en el mapa: objetivos que se muestran en pantalla (texto, contadores, avisos cuando queda poco por hacer); a veces un indicador de brújula hacia puntos importantes.
+Jetpack (si está desbloqueado en la partida): en el aire, tras un salto, puedes impulsarte hacia arriba mientras dure el combustible; en suelo o tras un tiempo sin usarlo, el medidor se recupera.
+Recogibles: salud, munición, armas nuevas, desbloqueo de jetpack, etc., suelen flotar y girar en el nivel hasta recogerlos.
+Fin de partida: transición con oscurecimiento gradual y sonido; según el resultado cargas una pantalla de victoria o de derrota.
+Controles (orientación práctica; el proyecto admite teclado/ratón y mando)
+
+Movimiento: direcciones adelante/atrás/lados (teclado tipo WASD o flechas; stick izquierdo en mando).
+Mirar: ratón o stick derecho.
+Saltar; sprint (correr); agacharse.
+Disparar y apuntar (botones típicos de ratón o gatillos del mando).
+Recargar.
+Cambiar de arma (rueda del ratón y/o ejes en teclado/mando según la asignación del proyecto).
+Menú en partida: pausa, ajustes de sensibilidad, sombras, invencibilidad de prueba, FPS en pantalla, imagen de controles.
+Jetpack: en el aire, mantener la acción de salto mientras el sistema lo permite y haya combustible (tras haber pulsado salto otra vez en el aire para “armar” el uso).
 
 ### Descripción
 
