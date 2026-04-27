@@ -196,6 +196,8 @@ classDiagram
     Pickup ..> EventManager : PickupEvent
     DetectionModule --> ActorsManager
 ```
+
+#### Núcleo del juego y utilidades
 He aquí con el nucleo del juego y algunas utilidades, según clases (archivos) del proyecto:
 
 | Clase | Responsabilidad | Problema que resuelve | Interacciones |
@@ -227,7 +229,8 @@ Actor va en cada entidad que cuenta como “personaje” en el sentido de equipo
 En OnDestroy se elimina de la lista para no dejar referencias colgando. Cada Actor expone un Affiliation o número de “equipo”. La IA usa una regla simple: si el Affiliation es distinto, es hostil. Misma afiliación ⇒ no se tratan como blanco (no entra en el bucle de enemigos del DetectionModule).
 El actor también expone un AimPoint: transform al que apuntan los rayos enemigos y que se usa en la línea de visión (“¿veo al otro actor?”). El jugador reposiciona ese punto al agacharse para que la altura del blanco sea coherente con la cápsula.
 
-He aquí más clases con el modelpo de combate, el sistema de salud (o vida) y el de las misiones:
+#### Combate, salud y misiones
+He aquí más clases con el modelo de combate, el sistema de salud (o vida) y el de las misiones:
 
 | Clase | Responsabilidad | Problema | Interacciones |
 |-------|----------------|----------|---------------|
@@ -245,6 +248,7 @@ WeaponController + ProjectileStandard + DamageArea son clases también muy impor
 
 Muchos comportamientos son configurables aquí, por ejemplo: si AutomaticReload está a cierto (valor por defecto en WeaponController) no hace falta pulsar recargar para que ese arma se recargue. Tras dejar de disparar, pasado un AmmoReloadDelay (por defecto 2 s), la munición vuelve sola poco a poco según AmmoReloadRate mientras haya hueco por debajo de MaxAmmo. Por otro lado si AutomaticReload está a falso, ahí sí entra el botón de recargar (en el asset de entrada está ligado a R en teclado y al botón de la izquierda del mando, entre otras asignaciones). El gestor de armas del jugador comprueba GetReloadButtonDown() y llama a StartReloadAnimation() si aún no tienes el cargador “lleno” a nivel de ratio.
 
+#### Jugador, armas, objetos y objetivos
 Más clases relacionadas con el jugador, las armas, los pickups u objetos a recoger, los objetivos concretos:
 
 | Clase | Responsabilidad | Problema | Interacciones |
@@ -267,6 +271,7 @@ Más clases relacionadas con el jugador, las armas, los pickups u objetos a reco
 
 PlayerCharacterController es una clase muy importante: concentra movimiento, cámara, sonidos, caídas, muerte y coordinación con armas y eventos; cualquier cambio de “cómo se siente el juego” pasa por aquí.
 
+#### IA de los enemigos
 Y por último estas son las clases relativas a la IA de los enemigos:
 
 | Clase | Responsabilidad | Problema | Interacciones |
@@ -300,6 +305,7 @@ En la carpeta Tutorials/ está TutorialCallbacks y criterios de publicación: es
 ## FPS UPV
 
 La versión multijugador ha sido desarrollada por el equipo de la UPV y se llama FPS-UPV, cuyo ZIP puede descargarse del [sitio web de la competición Bot Prize](https://botprize2026.ai2.upv.es/) del congreso [Conference on Games 2026](https://cog2026.fdi.ucm.es/).
+Asumimos que su desarrollo parte del FPS Microgame original, aunque se han incluido algunos add-ons que están disponibles para esta plantilla en la Asset Store (como el lanzallamas) y por supuesto se ha añadido todo el soporte multijugador usando Netcode for Game Objects.
 
 ### Descripción
 
