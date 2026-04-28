@@ -589,6 +589,42 @@ Si asumimos que el servidor es UCM_Bot y el cliente Human_Prefab, esta sería la
 ```mermaid
 sequenceDiagram
   autonumber
+  participant S as Host/Servidor (UCM_Bot)
+  participant FSM as FSM.Update() (servidor)
+  participant BGA as BotGameplayActions (servidor)
+  participant WC as WeaponController (servidor)
+  participant PROJ as ProjectileStandard (servidor)
+  participant DMG as Damageable (humano, en servidor)
+  participant PHS as PlayerHealthSync (humano, en servidor)
+  participant H_S as Health (humano, en servidor)
+  participant C as Cliente (Human_Prefab)
+  participant H_C as Health (humano, en cliente)
+
+  S->>FSM: Update() decide atacar
+  FSM->>BGA: TryFireCurrentWeaponPrimary(...)
+  BGA->>WC: HandleShootInputs(...)
+  WC->>PROJ: Instantiate + Shoot() (Owner = bot)
+  PROJ->>PROJ: Update() detecta hit contra humano (en servidor)
+  PROJ->>DMG: InflictDamage(dmg, src=Owner)
+  DMG->>PHS: Health.SendMessage("OnNetworkDamageRequested", [dmg, src])
+  PHS->>H_S: (IsServer) ApplyDamageServer() => TakeDamage()
+  PHS-->>C: ApplyDamageClientRpc(dmg, srcRef)
+  C->>H_C: ApplyDamageClientRpc() => TakeDamage()
+
+  Note over S,PROJ: Aquí el proyectil y el hit viven en servidor, así que no hay “petición” desde cliente.
+
+```
+
+Y esta sería la secuenica de disparo contraria, del servidor al cliente: 
+
+
+
+
+
+
+```mermaid
+sequenceDiagram
+  autonumber
   participant C as Cliente (Human_Prefab)
   participant PWM as PlayerWeaponsManager (cliente)
   participant WC as WeaponController (cliente)
@@ -615,37 +651,6 @@ sequenceDiagram
 
   Note over PROJ,DMG: El hit ocurrió en el cliente, pero el daño real lo decide el servidor.
   Note over PHS_S,H_S: En servidor se aplica autoritativamente y se replica a clientes.
-```
-
-Y esta sería la secuenica de disparo contraria, del servidor al cliente: 
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant S as Host/Servidor (UCM_Bot)
-  participant FSM as FSM.Update() (servidor)
-  participant BGA as BotGameplayActions (servidor)
-  participant WC as WeaponController (servidor)
-  participant PROJ as ProjectileStandard (servidor)
-  participant DMG as Damageable (humano, en servidor)
-  participant PHS as PlayerHealthSync (humano, en servidor)
-  participant H_S as Health (humano, en servidor)
-  participant C as Cliente (Human_Prefab)
-  participant H_C as Health (humano, en cliente)
-
-  S->>FSM: Update() decide atacar
-  FSM->>BGA: TryFireCurrentWeaponPrimary(...)
-  BGA->>WC: HandleShootInputs(...)
-  WC->>PROJ: Instantiate + Shoot() (Owner = bot)
-  PROJ->>PROJ: Update() detecta hit contra humano (en servidor)
-  PROJ->>DMG: InflictDamage(dmg, src=Owner)
-  DMG->>PHS: Health.SendMessage("OnNetworkDamageRequested", [dmg, src])
-  PHS->>H_S: (IsServer) ApplyDamageServer() => TakeDamage()
-  PHS-->>C: ApplyDamageClientRpc(dmg, srcRef)
-  C->>H_C: ApplyDamageClientRpc() => TakeDamage()
-
-  Note over S,PROJ: Aquí el proyectil y el hit viven en servidor, así que no hay “petición” desde cliente.
-
 ```
 
 Si asumimos que el servidor es Human_Prefab y el cliente UCM_Bot, esta sería la secuenica de disparo del servidor al cliente: 
