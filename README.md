@@ -309,7 +309,111 @@ Asumimos que su desarrollo parte del FPS Microgame original, aunque se han inclu
 
 ### Descripción
 
+Esta extensión de FPS Microgame convierte una experiencia pensada para un sólo jugador en una sola máquina en un juego multijugador donde varios jugadores humanos (o bots, controlados por la máquina) pueden estar en una misma escena, verse entre sí, luchar, reaparecer si mueren y en definitiva usar las mismas reglas de armas y vida que ya tenía el juego pero para pelearse entre sí.
+
+La carpeta de scripts MiMultiplayer es el “cableado” entre el juego original y esa nueva escena multijugador: cómo se entra, quién puede hacer qué decisión (para que no haya dos versiones contradictorias de los resultados de un combate), cómo se elige el aspecto de cada jugador, cómo se mueve y se anima lo que ven los demás, despliegue de menús y finales de partida que respetan quién manda en el juego... y un bloque opcional de recogida de datos (votaciones / exportación) pensado para análisis o experimentos con jueces humanos (aunque ahora mismo no está operativo).
+
+La idea es que haya una máquina que haga de servidor (bueno, en realidad un cliente/servidor que hace ambas cosas a la vez): acepta entradas, crea las “copias” oficiales de jugadores y objetos compartidos, y es la autoridad (es decir, quien tiene la última palabra) en cosas como daño, muerte, contadores y aparición de objetos en el mundo.
+Cada participante tiene su propia pantalla y controles locales: envía intenciones (moverse, disparar, coger algo) hacia el servidor; el servidor valida o unifica y el resultado se notifica a los clientes para que se refleje en todas sus pantallas.
+Los bots son diferentes porque no usan el teclado de nadie: su “cerebro” vive en el servidor, no en el cliente, y el resto de clientes sólo ven el resultado (posición, animación) que envía el servidor, para asegurarnos de que todos vean lo mismo.
+Fin de partida y cambio de escena: técnicamente quien lleva el servidor puede arrastrar a todo el grupo a otra pantalla (victoria, derrota, repetir); aunque un cliente sin ese rol no puede reiniciar la partida para los demás, sólo salirse o seguir escuchando lo que diga el servidor.
+En resumen: esta parte añadida de multijugador reparte responsabilidades entre “quien mantiene la verdad del juego” (la autoridad) y “quien sólo interpreta y muestra”, adaptando el HUD, menús y personajes para que encajen con esa repartición.
+
 ### Clases y sus relaciones
+
+Los sistemas principales (bloques en que estructura la aplicación) que encontramos en el diseño software de esta parte multijugador son estos:
+
+| Bloque | Rol |
+|--------|-----|
+| Entrada y sesión | Pantalla inicial: apodo, dirección del servidor, personaje; arranque como servidor o como cliente (a veces se les llama "la sala y el invitado"); carga del mapa acordado. |
+| Admisión y registro | Al unirse alguien, se interpreta su "ficha de datos” (nombre + elección de personaje), se fija qué prefab usar y se notifica al registro de jugadores para datos/análisis. |
+| Personaje en red | Prefabs humano/bot con sincronización de posición (ojo, distinta lógica para humano vs bot), vida/daño centralizado, reaparición, nombre y marcador. |
+| Mundo compartido | Armas sueltas en el mapa: quién las coge, cómo desaparecen para todos y cómo el cliente local actualiza su inventario. Los vigilantes robóticos sin embargo no están en el mundo compartido... |
+| Presentación local | Mirillas, barra de vida, flashes de daño, jetpack, marcador, pausa -por supuesto sin congelar el tiempo para los demás-. |
+| Flujo de partida | Victoria/derrota: sólo quien lleva el servidor inicia el cambio de escena grupal; menú de derrota distingue servidor y cliente. || IA de bots (aquí falta el desarrollo más académico de un bot con máquina de estados jerárquica o como fuese) | Máquina de estados mínima (es sólo un ejemplo) + capa de “acciones” en servidor; movimiento por malla de navegación; animación en tercera persona derivada del movimiento real. |
+| Datos / votación | Registro de votos por identificador de cliente; exportación a archivo (el código está presente, pero la escritura en disco ahora mismo la hemos dejado comentada porque era un rollo). |
+
+Hay un punto delicado y es que coexisten PlayerNameTag (nombre propietario + kills/deaths que actualiza PlayerRespawner) y PlayerStats (nombre servidor + kills/deaths en muerte). El HUD ClientScoreboardHUD lee PlayerStats; el script del jugador llamado internamente NewMonoBehaviourScript (que debería llamarse al menos como el fichero, ClientPlayerMove) arma un marcador desde PlayerNameTag. ¡Conviene tener claro cuál es la fuente de verdad que se quiere mostrar, porque tener 2 no es buena idea!
+
+En este diagrama se muestran las clases principales.
+
+```mermaid
+flowchart TB
+  subgraph Entrada
+    MMNU[MainMenuNetworkUI]
+  end
+
+  subgraph Servidor_sala
+    SCH[ServerConnectionHandler]
+    MDM[MatchDataManager]
+    WS[WeaponSpawner]
+    PR[PlayerRespawner]
+    FSM[FSM]
+    BGA[BotGameplayActions]
+  end
+
+  subgraph Personaje_red
+    CNT[ClientNetworkTransform]
+    CNA[ClientNetworkAnimator]
+    PHS[PlayerHealthSync]
+    PNT[PlayerNameTag]
+    PST[PlayerStats]
+    TPWS[ThirdPersonWeaponSync]
+    LV[LocalVisibility]
+    NPM[NewMonoBehaviourScript]
+  end
+
+  subgraph Mundo_pickups
+    NPS[NetworkPickupSync]
+  end
+
+  subgraph UI_local
+    CCM[ClientCrosshairManager]
+    CFH[ClientFeedbackFlashHUD]
+    CPH[ClientPlayerHealthBar]
+    CJC[ClientJetpackCounter]
+    CSH[ClientScoreboardHUD]
+    CWH[ClientWeaponHUDManager]
+    CIG[ClientInGameMenu]
+    MGM[MultiplayerGameManager]
+    LMM[LoseMenuManager]
+  end
+
+  subgraph Datos
+    PVS[PlayerVotingSync]
+  end
+
+  MMNU -->|inicia sesión y datos de conexión| SCH
+  SCH --> MDM
+  SCH -->|prefab jugador| Personaje_red
+
+  FSM --> BGA
+  FSM --> CNT
+  NPM --> CNT
+  PHS --> PNT
+  PHS --> PST
+  PR --> PNT
+  PR --> PHS
+  TPWS --> PNT
+  LV --> NPM
+
+  WS --> NPS
+  NPS --> NPM
+
+  PVS --> MDM
+
+  MGM --> MMNU
+  LMM --> MMNU
+
+  CCM --> NPM
+  CFH --> NPM
+  CPH --> NPM
+  CJC --> NPM
+  CSH --> PST
+  CWH --> NPM
+  CIG --> NPM
+
+```
 
 *Human_Prefab* representa al jugador humano y *UCM_Bot* es la IA que hay que programar si se quiere tener un bot contra el que enfrentarse.
 
