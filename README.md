@@ -415,32 +415,170 @@ flowchart TB
 
 ```
 
-*Human_Prefab* representa al jugador humano y *UCM_Bot* es la IA que hay que programar si se quiere tener un bot contra el que enfrentarse.
+Ojo porque los HUD apuntan conceptualmente al “jugador local” vía FindObjects* / IsOwner... no siempre por referencia explícita en código.
 
-#### Human_Prefab
+#### Entrada y flujo global
+* MainMenuNetworkUI
+Responsabilidad: flujo de UI del menú (jugar, elegir rol, conectar), validar apodo, guardarlo para la partida, empaquetar nombre + índice de personaje en los datos de conexión, configurar dirección/puerto e iniciar sala o invitado (es decir, servidor o cliente); en modo sala carga la escena de juego acordada.
+Problema que resuelve: un solo sitio donde el jugador humano deja constancia de quién es y qué aspecto quiere antes de entrar en la sala.
+Interacción: alimenta lo que lee el admitidor de conexiones; usa el gestor de red global de la escena.
+
+* ServerConnectionHandler
+Responsabilidad: en cada nueva conexión, lee el "maletín" (la ficha), aprueba la entrada, fija qué prefabricado de personaje corresponde al índice elegido y avisa a MatchDataManager para registrar nombre e id de cliente.
+Problema: que cada entrante tenga el personaje correcto sin depender del prefab, por defecto único.
+Interacción: lista de prefabs “universidades”; MatchDataManager; configuración del gestor de red (aprobación de conexiones).
+
+* MultiplayerGameManager (adaptación del gestor de fin de juego del microjuego)
+Responsabilidad: al acabar la partida (p. ej. muerte del jugador en modo clásico), sólo la sala o el modo offline inicia el fundido y el cambio de escena; los invitados no cargan escena por su cuenta, esperan al anfitrión.
+Problema: evitar desincronización de escenas entre máquinas.
+Interacción: sistema de eventos del juego base (PlayerDeathEvent); gestor de red para cargar escena en grupo.
+
+* LoseMenuManager
+Responsabilidad: UI de derrota: volver al menú inicial (cerrar sesión y destruir el gestor de red para un estado limpio) o, sólo si eres anfitrión, “jugar otra vez” cargando otra escena para todos.
+Problema: que un invitado no vea una acción que la sala no puede cumplir (reinicio global).
+Interacción: gestor de red y carga de escenas locales vs grupales.
+
+#### Personaje del jugador
+El personaje del jugador tiene movimiento, vida, reaparición, identidad... y todo tiene que funcionar por red.
+
+* NewMonoBehaviourScript (convendría renombrarlo; actúa como controlador del jugador propietario en red)
+Responsabilidad: al nacer en red, apaga cámara, input y gameplay del microjuego para no “jugar en el menú”; al entrar en escenas jugables, enciende todo; arreglos de escucha de audio si falta un oyente; construye un marcador textual local leyendo todos los PlayerNameTag.
+Problema: transición menú ↔ mapa con un solo prefab de jugador que existe ya en red antes del mapa.
+Interacción: escenas por nombre; PlayerNameTag; componentes del microjuego (PlayerCharacterController, Health, etc.).
+
+* ClientNetworkTransform
+Responsabilidad: decide si la posición la manda quien posee el personaje (humano) o la sala (si hay máquina de estados de bot).
+Problema: humanos y bots no pueden usar el mismo criterio de autoridad sin teleportes o trampas en cliente.
+Interacción: componente FSM como señal de “es bot”.
+
+* ClientNetworkAnimator
+Responsabilidad: animación no gobernada solo por la sala (dueño puede influir en parámetros replicados según el diseño del componente base).
+Problema: coherencia visual del personaje propio frente a la réplica en otros.
+Interacción: NetworkAnimator del paquete de red.
+
+* PlayerHealthSync
+Responsabilidad: cuando el sistema de daño del juego pide daño vía mensaje, en la sala aplica el golpe de forma oficial y ordena a las demás máquinas que apliquen el mismo golpe para efectos locales; si quien dispara no es la sala, pide a la sala que lo haga.
+Problema: que nadie pueda “bajarse vida arbitraria” desde su máquina sin pasar por la sala.
+Interacción: Health, Damageable / SendMessage; referencias de red al origen del daño para atribución.
+
+* PlayerRespawner
+Se trata de un componente clave. Mezcla lógica de sala/servidor (spawn, revive, bots) y ritual de muerte en el cliente humano (el fundido, por ejemplo); conviene entenderlo bien antes de cambiar flujos de muerte.
+Responsabilidad: en la sala, primera aparición en puntos del mapa con reglas de separación y respaldo por malla de navegación; en muerte, sube contadores en PlayerNameTag, distingue bot (todo en sala, sin fundido de muerte local) de humano (espera, oculta fundido de fin de juego si aplica, pide reaparición a la sala); la sala teletransporta, revive y avisa a todos con la misma posición/rotación.
+Problema: spawns justos, atribución de bajas y reaparición sin dejar al personaje atravesando suelo.
+Interacción: Health, PlayerNameTag, FSM para detectar bot, GameFlowManager para no pisar el UI de “game over” del single-player.
+
+A continuación tenemos también estas dos clases "duplicadas": dos fuentes de kills/muertes/nombre; ojo, el HUD oficial del prefab puede NO coincidir con el marcador creado en NewMonoBehaviourScript si no se unifican criterios.
+
+* PlayerNameTag
+Responsabilidad: nombre replicable (quien posee el personaje lo sube desde preferencias); kills/muertes con escritura solo en sala; texto sobre la cabeza y billboard hacia la cámara; el dueño puede ocultar su propio cartel.
+Problema: identificación social y marcador ligero.
+Interacción: PlayerRespawner (y posiblemente IA por SendMessage para kills de enemigos PvE).
+
+* PlayerStats
+Responsabilidad: otra vía de nombre + kills/muertes con nombre copiado desde PlayerNameTag en la sala y actualizado en muerte vía último origen de daño.
+Problema: marcador servidor-autoritativo desacoplado del tag.
+Interacción: PlayerNameTag, Health; consumido por ClientScoreboardHUD.
+
+#### Bot
+
+* FSM
+Responsabilidad: en la sala, tras esperar a mapa y actores listos, prepara navegación, desactiva control humano conflictivo, máquina de estados mínima (inactivo → deambular → muerto) con ejemplo de puntos aleatorios en malla; reacciona a curación/muerte.
+Problema: plantilla académica donde la decisión (estados) está separada de las acciones.
+Interacción: BotGameplayActions, Health, PlayerRespawner, ClientNetworkTransform.
+
+* BotGameplayActions
+Responsabilidad: crear/configurar agente de navegación, órdenes de ir/parar/mirar, puente opcional a armas del microjuego, animación tercera persona estimando avance lateral/adelante desde el movimiento real del cuerpo.
+Problema: un solo sitio con nombres claros (“ir aquí”, “disparar”) para que la FSM no dependa de cada detalle interno del personaje.
+Interacción: NavMeshAgent, PlayerWeaponsManager, PlayerCharacterController (animator).
+
+####  Mundo y pickups
+* WeaponSpawner
+Responsabilidad: en la sala, temporizador para instanciar y “publicar” un pickup de arma aleatorio de una lista mientras no haya uno activo del spawner.
+Problema: reaparición de loot una sola verdad en la sala.
+Interacción: prefabs con objeto de red.
+
+* NetworkPickupSync
+Responsabilidad: el pickup escucha la petición del microjuego; el dueño del personaje que tocó pide a la sala coger el arma; la sala marca como cogido, manda al cliente ganador que ejecute la concesión de arma en su copia local y retira el objeto de la red.
+Problema: carreras entre dos jugadores y inventario solo en el cliente correcto.
+Interacción: WeaponPickup, PlayerCharacterController, LocalWorldPickupRespawn (en otro ensamblado) para reaparición local opcional.
+
+#### Presentación 
+Ya sea que haya mostrar al personaje en tercera persona / local / HUD.
+
+* ThirdPersonWeaponSync
+Responsabilidad: índice de arma visible replicado; el dueño escucha cambios de arma y actualiza la variable; todos encienden/apagan modelos “fantasma” y enganchan IK de mano.
+Problema: que los demás vean qué arma llevas sin replicar todo el inventario al detalle.
+Interacción: PlayerWeaponsManager, NetworkVariable.
+
+* LocalVisibility
+Responsabilidad: para tu propia copia, cuerpo y armas tercera persona en modo sombra (o visibles si se configura); brazos de primera persona solo para ti; los demás te ven completo.
+Problema: cámara primera persona sin “ver dentro del cuerpo” de forma molesta.
+Interacción: SkinnedMeshRenderer, capas de armas/brazos.
+
+* ClientFollowPlayer
+Responsabilidad: objeto que sigue al jugador marcado por ActorsManager (offset conservado), útil para cámara u objeto hijo en multijugador cuando el jugador aparece tarde.
+Problema: referencias rotas si el manager aún no tiene jugador.
+Interacción: ActorsManager.
+
+* ClientCrosshairManager, ClientFeedbackFlashHUD, ClientPlayerHealthBar, ClientJetpackCounter
+Responsabilidad: versiones “con red” del HUD del microjuego: en el spawn, solo el dueño vuelve a enlazar con su PlayerWeaponsManager / Health / Jetpack (el Start original a veces enganchaba al personaje equivocado en sala).
+Problema: HUD global que antes asumía un único jugador en escena.
+Interacción: mismos eventos y APIs que el HUD original.
+
+* ClientScoreboardHUD
+Responsabilidad: solo dueño; refresca texto con todos los PlayerStats.
+Problema: marcador global legible.
+Interacción: PlayerStats (no PlayerNameTag).
+
+* ClientWeaponHUDManager
+Responsabilidad: MonoBehaviour que busca de forma perezosa al jugador local y suscribe contadores de munición a su PlayerWeaponsManager.
+Problema: mismo que arriba, sin heredar de red.
+Interacción: AmmoCounter, prefabs de UI.
+
+* ClientInGameMenu
+Responsabilidad: pausa sin detener el tiempo del juego (los demás siguen); encuentra al jugador dueño y enlaza sensibilidad, sombras, invencibilidad, FPS.
+Problema: timeScale = 0 rompería multijugador.
+Interacción: Input System, PlayerInputHandler, Health.
+
+#### Datos y análisis
+Esta parte para permitir votar a los jueces y decir qué bot parece más humano... está todavía sin terminar.
+
+MatchDataManager
+Responsabilidad: singleton en sala: registro de jugadores (incluido anfitrión al arrancar), votos recibidos por objetivo (humano vs “robot”), agregación para exportación JSON; la escritura a disco está comentada.
+Problema: trazabilidad post-partida sin mezclar lógica de combate.
+Interacción: ServerConnectionHandler, PlayerVotingSync.
+
+PlayerVotingSync
+Responsabilidad: desde el dueño del personaje que vota, envía a la sala un voto contra el objetivo (jugador de red válido); la sala registra en MatchDataManager.
+Problema: votos validados en sala (no confiar en el cliente para el registro final).
+Interacción: MatchDataManager, NetworkObject.
+
+### Principales prefabs
+
+En lo que es la escena podemos tener a *Human_Prefab*, que representa al jugador humano, y *UCM_Bot* que es la IA que hay que programar si se quiere tener un bot contra el que enfrentarse.
+
+* Human_Prefab
 Ruta: Assets/FPS/Scripts/MiMultiplayer/Human_Prefab.prefab
 
 Es el “paquete completo” del jugador: control FPS, cámara, armas, vida/daño y los componentes oficiales de Netcode que permiten hacer multijugador en Unity.
 
 Lo más relevante que puede encontrarse en la raíz de este prefab es esto:
+    * NetworkObject: identidad de red del jugador.
+    * PlayerInput (Input System): componente de Unity que gestiona dispositivos/mapas de entrada.
+    * NewMonoBehaviourScript (tu “ClientPlayerMove” real, el hombre es que no está bien puesto): habilita cámara/controles sólo para el propietario, crea el HUD del marcador, etc.
+    * PlayerRespawner: maneja muerte/respawn en red (RPC al server y respawn al cliente).
+    * ClientNetworkTransform: sincroniza transform (owner authority en tu setup). Junto a FSM son componentes clave y ahora mismo está organizado así: patrón explícito humano = autoridad del dueño, bot = autoridad de la sala. Así se ha decidido llevar los bots al servidor.
+    * PlayerHealthSync: sincroniza vida/estado. Se trata de un componente crítico, un núcleo de integridad del combate (sala como árbitro del daño).
+    * PlayerVotingSync (solo en Human): sistema de votación/acciones especiales.
+    * PlayerNameTag: nombre/kills/deaths en red.
+    * ClientNetworkAnimator: Script para hacer animación sincronizada.
+    * Rigging / IK / Weapon sync: WeaponIKSync, ThirdPersonWeaponSync, RigBuilder, constraints, etc. Son scripts de sincronización (por ejemplo PlayerHealthSync, ThirdPersonWeaponSync, LocalVisibility...).
+    * UI (CanvasScaler, GraphicRaycaster, TMP): el canvas world-space del nametag y elementos.
+    * CharacterController: componente nativo de Unity para mover un “personaje tipo cápsula” en el mundo sin usar un Rigidbody. Gestiones colisiones, deslizamiento, movimiento 'cinemático', grounding básico... pero no hace nada más.
+    * PlayerCharacterController: Script de este proyecto que hace las veces de MENTE del CharacterController, lee la entrada con PlayerInputHandler, y lo convierte en movimiento, rotación, coordina la cámara, la animación, está pendiente de la salud, muerte, apuntado, etc. 
 
-* NetworkObject: identidad de red del jugador.
-* PlayerInput (Input System): componente de Unity que gestiona dispositivos/mapas de entrada.
-* NewMonoBehaviourScript (tu “ClientPlayerMove” real, el hombre es que no está bien puesto): habilita cámara/controles sólo para el propietario, crea el HUD del marcador, etc.
-* PlayerRespawner: maneja muerte/respawn en red (RPC al server y respawn al cliente).
-* ClientNetworkTransform: sincroniza transform (owner authority en tu setup).
-* PlayerHealthSync: sincroniza vida/estado.
-* PlayerVotingSync (solo en Human): sistema de votación/acciones especiales.
-* PlayerNameTag: nombre/kills/deaths en red.
-* ClientNetworkAnimator: Script para hacer animación sincronizada.
-* Rigging / IK / Weapon sync: WeaponIKSync, ThirdPersonWeaponSync, RigBuilder, constraints, etc. Son scripts de sincronización (por ejemplo PlayerHealthSync, ThirdPersonWeaponSync, LocalVisibility...).
-* UI (CanvasScaler, GraphicRaycaster, TMP): el canvas world-space del nametag y elementos.
-* CharacterController: componente nativo de Unity para mover un “personaje tipo cápsula” en el mundo sin usar un Rigidbody. Gestiones colisiones, deslizamiento, movimiento 'cinemático', grounding básico... pero no hace nada más.
-* PlayerCharacterController: Script de este proyecto que hace las veces de MENTE del CharacterController, lee la entrada con PlayerInputHandler, y lo convierte en movimiento, rotación, coordina la cámara, la animación, está pendiente de la salud, muerte, apuntado, etc. 
-
-#### UCM_Bot
+* UCM_Bot
 Ruta: Assets/FPS/Scripts/MiMultiplayer/UCM_Bot.prefab
 
-En UCM_Bot encontramos componentes muy parecidos, aunque se ha añadido FSM como ejemplo de dónde podría ir una máquina de estados que tome las decisiones de ese bot (hay que sustituir COMPLETAMENTE todo ese código), y BotGameplayActions para hacer las veces de gestor de acciones, aunque también hace cosas como crear el componente NavMeshAgent en caso de que no lo tenga (que de hecho no lo tiene añadido ahora mismo).
-
+En UCM_Bot encontramos componentes muy parecidos, aunque se ha añadido FSM como ejemplo de dónde podría ir una máquina de estados que tome las decisiones de ese bot (hay que sustituir COMPLETAMENTE todo ese código), y BotGameplayActions para hacer las veces de gestor de acciones, aunque también hace cosas como crear el componente NavMeshAgent en caso de que no lo tenga (que de hecho no lo tiene añadido ahora mismo). 
 
