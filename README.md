@@ -613,7 +613,7 @@ sequenceDiagram
   PHS_S-->>C: ApplyDamageClientRpc(dmg, srcRef)
   C->>H_C: ApplyDamageClientRpc() => TakeDamage()
 
-  Note PROJ,DMG: El hit ocurrió en el cliente, pero el daño real lo decide el servidor.
+  Note over PROJ,DMG: El hit ocurrió en el cliente, pero el daño real lo decide el servidor.
   Note over PHS_S,H_S: En servidor se aplica autoritativamente y se replica a clientes.
 ```
 
@@ -706,3 +706,6 @@ sequenceDiagram
   Note over FSM,BGA: El cliente NO debería “inventarse” daño. La decisión de ataque vive en servidor.
 
 ```
+
+En resumen, cuando dispara un cliente humano el proyectil impacta EN el cliente, así que PlayerHealthSync en esa copia del objetivo NO es servidor y por lo tanto debe pedir al servidor que se realice el daño con RequestDamageServerRpc.
+Por otro lado cuando dispara el servidor (sea el jugador humano o el bot, que se ejecuta siempre en el servidor) el proyectil impacta en el propio servidor, de manera que PlayerHealthSync ya está en modo servidor y puede aplica el daño directo, únicamente replicando ese daño en los clientes con ApplyDamageClientRpc.
