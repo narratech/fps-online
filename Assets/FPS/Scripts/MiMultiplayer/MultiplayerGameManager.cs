@@ -4,38 +4,59 @@ using UnityEngine.SceneManagement;
 
 namespace Unity.FPS.Game
 {
+    /// <summary>
+    /// Gestor de fin de partida (win/lose) adaptado para multijugador con NGO.
+    /// <para>
+    /// En modo offline: carga escenas con <see cref="SceneManager.LoadScene"/>.
+    /// En modo multijugador:
+    /// - Solo el servidor/host inicia la transición.
+    /// - La escena se cambia usando <see cref="NetworkSceneManager.LoadScene"/> para arrastrar a todos los clientes.
+    /// - Los clientes puros no hacen nada en la carga final (esperan al servidor).
+    /// </para>
+    /// </summary>
     public class MultiplayerGameManager : MonoBehaviour
     {
         [Header("Parameters")]
         [Tooltip("Duration of the fade-to-black at the end of the game")]
+        /// <summary>Duración base del fundido a negro al terminar.</summary>
         public float EndSceneLoadDelay = 3f;
 
         [Tooltip("The canvas group of the fade-to-black screen")]
+        /// <summary>CanvasGroup que se usa para el fade.</summary>
         public CanvasGroup EndGameFadeCanvasGroup;
 
         [Header("Win")]
         [Tooltip("This string has to be the name of the scene you want to load when winning")]
+        /// <summary>Escena a cargar cuando se gana.</summary>
         public string WinSceneName = "WinScene";
 
         [Tooltip("Duration of delay before the fade-to-black, if winning")]
+        /// <summary>Delay adicional antes del fade cuando se gana.</summary>
         public float DelayBeforeFadeToBlack = 4f;
 
         [Tooltip("Win game message")]
+        /// <summary>Mensaje de victoria (UI).</summary>
         public string WinGameMessage;
         [Tooltip("Duration of delay before the win message")]
+        /// <summary>Delay antes de mostrar el mensaje de victoria.</summary>
         public float DelayBeforeWinMessage = 2f;
 
         [Tooltip("Sound played on win")] public AudioClip VictorySound;
 
         [Header("Lose")]
         [Tooltip("This string has to be the name of the scene you want to load when losing")]
+        /// <summary>Escena a cargar cuando se pierde.</summary>
         public string LoseSceneName = "LoseScene";
 
+        /// <summary>Indica si ya se disparó la secuencia de fin de juego.</summary>
         public bool GameIsEnding { get; private set; }
 
+        /// <summary>Timestamp cuando debe cargarse la escena final.</summary>
         float m_TimeLoadEndGameScene;
+        /// <summary>Nombre de la escena final a cargar (win/lose).</summary>
         string m_SceneToLoad;
 
+        /// <summary>Suscripción al evento de muerte del jugador.</summary>
         void Awake()
         {
             EventManager.AddListener<PlayerDeathEvent>(OnPlayerDeath);
@@ -50,6 +71,7 @@ namespace Unity.FPS.Game
         {
             if (GameIsEnding)
             {
+                // Interpola alpha y volumen durante el fade.
                 float timeRatio = 1 - (m_TimeLoadEndGameScene - Time.time) / EndSceneLoadDelay;
                 EndGameFadeCanvasGroup.alpha = timeRatio;
 
@@ -81,6 +103,9 @@ namespace Unity.FPS.Game
 
         void OnPlayerDeath(PlayerDeathEvent evt) => EndGame(false);
 
+        /// <summary>
+        /// Inicia la secuencia de fin de partida (solo host/servidor o offline).
+        /// </summary>
         void EndGame(bool win)
         {
             // Solo iniciamos la secuencia de fin de juego si somos el servidor (Host) o estamos jugando offline.
@@ -121,6 +146,7 @@ namespace Unity.FPS.Game
 
         void OnDestroy()
         {
+            // Limpieza de evento.
             EventManager.RemoveListener<PlayerDeathEvent>(OnPlayerDeath);
         }
     }

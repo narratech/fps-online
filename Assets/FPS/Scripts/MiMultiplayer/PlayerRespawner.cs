@@ -7,19 +7,39 @@ using Unity.FPS.Game;
 
 namespace Unity.FPS.Gameplay
 {
+    /// <summary>
+    /// Respawn sincronizado por servidor para jugadores y bots (NGO).
+    /// <para>
+    /// Flujo:
+    /// - Al morir (<see cref="Health.OnDie"/>), el servidor incrementa stats (kills/deaths) y decide respawn.
+    /// - Humanos: el owner (cliente local) espera unos segundos y solicita respawn con <see cref="RequestRespawnServerRpc"/>.
+    /// - Bots: el servidor espera y respawnea directamente (sin pedir permiso al owner).
+    /// - El servidor teletransporta al objeto y manda a clientes <see cref="RespawnClientRpc"/> para aplicar
+    ///   el mismo cambio (deshabilitando temporalmente CharacterController para evitar colisiones raras).
+    /// </para>
+    /// <para>
+    /// Nota: además del teletransporte, revive <see cref="Health"/> y notifica al <see cref="PlayerCharacterController"/>.
+    /// </para>
+    /// </summary>
     public class PlayerRespawner : NetworkBehaviour
     {
         [Header("Spawn — puntos RespawnPoint")]
         [Tooltip("Separación mínima en el suelo (XZ) respecto a otros jugadores para considerar un punto \"libre\".")]
+        /// <summary>Distancia mínima horizontal a otros jugadores para considerar un respawn "seguro".</summary>
         [SerializeField] float m_MinHorizontalSeparationFromPlayers = 3f;
 
         [Tooltip("Radio usado solo en el fallback NavMesh: proyectar el marcador sobre la malla cerca del suelo.")]
+        /// <summary>Radio de muestreo al proyectar un RespawnPoint sobre NavMesh (fallback).</summary>
         [SerializeField] float m_NavMeshSampleRadius = 4f;
 
+        /// <summary>Vida del personaje (para escuchar muerte/daño).</summary>
         private Health m_Health;
+        /// <summary>Controlador del personaje para callback de respawn.</summary>
         private PlayerCharacterController m_CharacterController;
+        /// <summary>Último atacante (para atribuir kill). Se resuelve desde DamageSource.</summary>
         PlayerNameTag m_LastPlayerAttacker;
 
+        /// <summary>Cache de referencias y suscripción a eventos locales.</summary>
         void Awake()
         {
             m_Health = GetComponent<Health>();
@@ -40,6 +60,9 @@ namespace Unity.FPS.Gameplay
                 StartCoroutine(ServerInitialSpawnWhenPointsReady());
         }
 
+        /// <summary>
+        /// Spawn inicial: espera a que existan objetos con tag `RespawnPoint` para evitar caer al vacío.
+        /// </summary>
         IEnumerator ServerInitialSpawnWhenPointsReady()
         {
             yield return new WaitForSeconds(0.05f * (OwnerClientId % 5));
@@ -60,6 +83,9 @@ namespace Unity.FPS.Gameplay
             ApplyInitialSpawnAtServer();
         }
 
+        /// <summary>
+        /// Teletransporta al jugador en servidor a un RespawnPoint (desactivando CC temporalmente).
+        /// </summary>
         void ApplyInitialSpawnAtServer()
         {
             var cc = GetComponent<CharacterController>();
@@ -75,6 +101,7 @@ namespace Unity.FPS.Gameplay
             if (cc != null) cc.enabled = true;
         }
 
+        /// <summary>Desuscripción defensiva de eventos.</summary>
         public override void OnDestroy()
         {
             base.OnDestroy();
@@ -87,6 +114,7 @@ namespace Unity.FPS.Gameplay
 
         void OnDamaged(float damage, GameObject damageSource)
         {
+            // Track del último atacante para atribución de kill (solo si es otro jugador).
             if (damageSource == null)
             {
                 m_LastPlayerAttacker = null;
@@ -106,6 +134,7 @@ namespace Unity.FPS.Gameplay
 
         void HandleDeath()
         {
+            // En servidor: contabiliza muertes y kills (si hay atacante distinto).
             if (IsServer)
             {
                 var myTag = GetComponent<PlayerNameTag>();
@@ -120,11 +149,13 @@ namespace Unity.FPS.Gameplay
 
             if (isBot)
             {
+                // Bot: el servidor gestiona todo el ciclo de muerte/respawn sin intervención de un owner "humano".
                 if (IsServer)
                     StartCoroutine(BotDeathRoutineServer());
                 return;
             }
 
+            // Humano: solo el owner muestra delay/fade local y solicita respawn al servidor.
             if (!IsOwner) return;
             StartCoroutine(DeathRoutine());
         }
@@ -158,11 +189,15 @@ namespace Unity.FPS.Gameplay
         }
 
         [ServerRpc]
+        /// <summary>RPC owner→servidor: solicita respawn (servidor decide el punto y revive).</summary>
         void RequestRespawnServerRpc(ServerRpcParams rpcParams = default)
         {
             ServerPerformRespawn();
         }
 
+        /// <summary>
+        /// Respawn autoritativo en servidor: elige punto, teletransporta, revive, y notifica a clientes.
+        /// </summary>
         void ServerPerformRespawn()
         {
             GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("RespawnPoint");
@@ -182,6 +217,9 @@ namespace Unity.FPS.Gameplay
         }
 
         [ClientRpc]
+        /// <summary>
+        /// RPC servidor→clientes: aplica el respawn en instancias remotas (teletransporte + revive).
+        /// </summary>
         void RespawnClientRpc(Vector3 spawnPosition, Quaternion spawnRotation, ClientRpcParams clientRpcParams = default)
         {
             CharacterController cc = GetComponent<CharacterController>();
@@ -206,6 +244,7 @@ namespace Unity.FPS.Gameplay
         void PickSpawnTransform(GameObject[] spawnPoints, PlayerCharacterController excludeSelf,
             out Vector3 spawnPos, out Quaternion spawnRot)
         {
+            // Algoritmo documentado en el summary: intenta "libres", luego NavMesh, luego fallback.
             spawnPos = new Vector3(0, 5, 0);
             spawnRot = Quaternion.identity;
 
@@ -266,6 +305,7 @@ namespace Unity.FPS.Gameplay
         static bool IsXZTooCloseToOtherPlayers(Vector3 candidateWorld, PlayerCharacterController[] players,
             PlayerCharacterController excludeSelf, float minHorizontal)
         {
+            // Métrica solo en XZ (plano suelo), ignorando altura.
             for (int i = 0; i < players.Length; i++)
             {
                 var p = players[i];

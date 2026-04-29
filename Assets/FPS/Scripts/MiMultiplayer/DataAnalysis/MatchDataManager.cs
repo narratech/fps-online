@@ -5,50 +5,93 @@ using System.Linq;
 using UnityEngine;
 using Unity.Netcode;
 
+/// <summary>
+/// Conteo agregado por votante: "quién votó" y "cuántas veces".
+/// </summary>
 [Serializable]
 public class ConteoVoto
 {
+    /// <summary>ClientId (NGO) del votante.</summary>
     public ulong idVotante;
+    /// <summary>Número de votos recibidos desde ese votante.</summary>
     public int totalVotos;
 }
 
+/// <summary>
+/// DTO (data transfer object) exportable por jugador para persistencia/analítica.
+/// </summary>
 [Serializable]
 public class PlayerDataExport
 {
+    /// <summary>ClientId del jugador (objetivo).</summary>
     public ulong clientId;
+    /// <summary>Nombre lógico del jugador (según menú/approval).</summary>
     public string playerName;
+    /// <summary>Lista agregada de votos "Humano" recibidos.</summary>
     public List<ConteoVoto> votosHumano;
+    /// <summary>Lista agregada de votos "Robot" recibidos.</summary>
     public List<ConteoVoto> votosRobot;
 }
 
+/// <summary>
+/// Wrapper exportable para serialización JSON de resultados completos de partida.
+/// </summary>
 [Serializable]
 public class MatchDataWrapperExport
 {
+    /// <summary>Resultados por jugador (objetivo) de la partida.</summary>
     public List<PlayerDataExport> resultadosPartida = new List<PlayerDataExport>();
 }
 
+/// <summary>
+/// Estructura interna de almacenamiento por jugador durante la partida (no serializable directamente a JSON).
+/// </summary>
 public class PlayerData
 {
+    /// <summary>ClientId del jugador (objetivo).</summary>
     public ulong clientId;
+    /// <summary>Nombre del jugador.</summary>
     public string playerName;
+    /// <summary>Historial (con repetidos) de quién le votó como Humano.</summary>
     public List<ulong> votosHumanoRecibidos = new List<ulong>();
+    /// <summary>Historial (con repetidos) de quién le votó como Robot.</summary>
     public List<ulong> votosRobotRecibidos = new List<ulong>();
 }
 
+/// <summary>
+/// Singleton de partida para registrar jugadores y votos, y opcionalmente exportar a JSON al finalizar.
+/// <para>
+/// Integración:
+/// - Se alimenta desde `ServerConnectionHandler.RegisterPlayer(...)` durante el approval.
+/// - Se alimenta desde `PlayerVotingSync` cuando se envían votos al servidor.
+/// </para>
+/// <para>
+/// Autoridad: se pretende que el servidor sea la única fuente de verdad (ver <see cref="ExportarDatosAJson"/>).
+/// </para>
+/// <para>
+/// DEFECTUOSO (persistencia en Assets): la exportación apunta a <see cref="Application.dataPath"/>, que en editor
+/// cae dentro de `Assets/` y puede ensuciar el repo con JSONs versionables. Está desactivado correctamente,
+/// pero si se reactiva conviene escribir fuera del proyecto (persistentDataPath) o en una carpeta ignorada por git.
+/// </para>
+/// </summary>
 public class MatchDataManager : MonoBehaviour
 {
+    /// <summary>Instancia única viva en escena (patrón singleton simple).</summary>
     public static MatchDataManager Instance { get; private set; }
 
+    /// <summary>Mapa clientId → datos acumulados durante la partida.</summary>
     private Dictionary<ulong, PlayerData> playersData = new Dictionary<ulong, PlayerData>();
 
     void Awake()
     {
+        // Singleton simple: conserva la primera instancia y destruye duplicados.
         if (Instance == null) { Instance = this; }
         else { Destroy(gameObject); }
     }
 
     void Start()
     {
+        // Solo el servidor registra automáticamente al host en el arranque de red.
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer) 
         {
             NetworkManager.Singleton.OnServerStarted += RegistrarHost;
@@ -62,13 +105,20 @@ public class MatchDataManager : MonoBehaviour
 
     private void RegistrarHost()
     {
+        // El host tiene LocalClientId en el proceso servidor (host).
         ulong hostId = NetworkManager.Singleton.LocalClientId;
 
+        // Nombre local del host (si se usa el mismo PlayerPrefs que el menú).
         string hostName = PlayerPrefs.GetString("PlayerName", "Host_Desconocido");
 
         RegisterPlayer(hostId, hostName);
     }
 
+    /// <summary>
+    /// Registra (o actualiza) un jugador en el agregado de datos.
+    /// </summary>
+    /// <param name="clientId">ClientId del jugador.</param>
+    /// <param name="playerName">Nombre lógico.</param>
     public void RegisterPlayer(ulong clientId, string playerName)
     {
         if (!playersData.ContainsKey(clientId))
@@ -85,6 +135,12 @@ public class MatchDataManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Registra un voto de <paramref name="tiradorId"/> hacia <paramref name="objetivoId"/>.
+    /// </summary>
+    /// <param name="tiradorId">Quién vota.</param>
+    /// <param name="objetivoId">Quién recibe el voto.</param>
+    /// <param name="esVotoHumano">True = voto "Humano"; false = voto "Robot".</param>
     public void RegistrarVoto(ulong tiradorId, ulong objetivoId, bool esVotoHumano)
     {
         // Registro de emergencia para el objetivo
@@ -112,6 +168,12 @@ public class MatchDataManager : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// Exporta los datos agregados a un JSON en disco (solo servidor).
+    /// </summary>
+    /// <remarks>
+    /// Actualmente la escritura real está comentada para no generar ficheros dentro de `Assets/`.
+    /// </remarks>
     public void ExportarDatosAJson()
     {
         if (NetworkManager.Singleton != null && !NetworkManager.Singleton.IsServer) return;

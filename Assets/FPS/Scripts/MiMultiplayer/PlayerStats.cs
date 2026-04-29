@@ -9,27 +9,45 @@ using Unity.FPS.Game;
 /// </summary>
 public class PlayerStats : NetworkBehaviour
 {
+    /// <summary>
+    /// Nombre mostrado en el marcador.
+    /// <para>
+    /// Read: Everyone, Write: Server. El servidor copia el valor desde <see cref="PlayerNameTag.NetworkedName"/>
+    /// (que es Owner-write) para publicar un "snapshot" autoritativo en el scoreboard.
+    /// </para>
+    /// </summary>
     public NetworkVariable<FixedString64Bytes> PlayerName = new(
         "",
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
 
+    /// <summary>
+    /// Número de kills atribuidas a este jugador (servidor incrementa).
+    /// </summary>
     public NetworkVariable<int> Kills = new(
         0,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
 
+    /// <summary>
+    /// Número de muertes de este jugador (servidor incrementa).
+    /// </summary>
     public NetworkVariable<int> Deaths = new(
         0,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
 
+    /// <summary>Referencia a la vida para escuchar daño/muerte.</summary>
     Health m_Health;
+    /// <summary>
+    /// Última fuente de daño recibida (se usa para atribuir kills cuando muere).
+    /// </summary>
     GameObject m_LastDamageSource;
 
+    /// <summary>Cachea <see cref="Health"/> y se suscribe a eventos locales.</summary>
     void Awake()
     {
         m_Health = GetComponent<Health>();
@@ -61,6 +79,9 @@ public class PlayerStats : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Limpia suscripciones de red al despawnear (solo servidor, porque es quien se suscribe).
+    /// </summary>
     public override void OnNetworkDespawn()
     {
         if (IsServer)
@@ -75,12 +96,18 @@ public class PlayerStats : NetworkBehaviour
         base.OnNetworkDespawn();
     }
 
+    /// <summary>
+    /// Callback servidor cuando cambia el nombre owner-write, para publicar el nuevo nombre en el marcador.
+    /// </summary>
     void OnNameChangedServer(FixedString64Bytes prev, FixedString64Bytes next)
     {
         if (!IsServer) return;
         PlayerName.Value = next;
     }
 
+    /// <summary>
+    /// Registra la fuente del último daño para posible atribución de kill.
+    /// </summary>
     void OnDamaged(float damage, GameObject damageSource)
     {
         // Guardamos el último atacante para poder asignar kill si morimos.
@@ -88,6 +115,9 @@ public class PlayerStats : NetworkBehaviour
             m_LastDamageSource = damageSource;
     }
 
+    /// <summary>
+    /// En servidor: incrementa muertes y, si se puede resolver un atacante distinto, incrementa sus kills.
+    /// </summary>
     void OnDie()
     {
         if (!IsServer) return;
@@ -101,6 +131,11 @@ public class PlayerStats : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Intenta resolver un <see cref="PlayerStats"/> desde la fuente de daño.
+    /// </summary>
+    /// <param name="damageSource">GameObject que causó el daño (puede ser el jugador, un arma o un hijo).</param>
+    /// <returns>El <see cref="PlayerStats"/> del atacante o null si no se pudo resolver.</returns>
     public static PlayerStats FindKillerStats(GameObject damageSource)
     {
         if (damageSource == null) return null;

@@ -11,16 +11,26 @@ using UnityEngine;
 public class ClientScoreboardHUD : NetworkBehaviour
 {
     [Header("UI")]
+    /// <summary>
+    /// Texto TMP donde se renderiza el marcador. Si es null, se crea en <see cref="EnsureUI"/>.
+    /// </summary>
     [SerializeField] TextMeshProUGUI scoreboardText;
 
     [Header("Update")]
+    /// <summary>Cadencia del refresco (en tiempo no escalado).</summary>
     [SerializeField] float refreshIntervalSeconds = 0.25f;
 
+    /// <summary>Próximo tick de refresco.</summary>
     float m_NextRefreshTime;
+    /// <summary>Buffer para construir el texto sin asignaciones por frame.</summary>
     readonly StringBuilder m_Sb = new StringBuilder(512);
 
+    /// <summary>Cache global de la fuente Roboto usada por el HUD.</summary>
     static TMP_FontAsset s_CachedRobotoHudFont;
 
+    /// <summary>
+    /// Busca y cachea la fuente Roboto usada en el HUD del sample.
+    /// </summary>
     static TMP_FontAsset ResolveGameHudFont()
     {
         if (s_CachedRobotoHudFont != null) return s_CachedRobotoHudFont;
@@ -51,6 +61,9 @@ public class ClientScoreboardHUD : NetworkBehaviour
         EnsureUI();
     }
 
+    /// <summary>
+    /// Refresca el marcador leyendo todos los <see cref="PlayerStats"/> de escena.
+    /// </summary>
     void Update()
     {
         if (!IsOwner) return;
@@ -82,6 +95,9 @@ public class ClientScoreboardHUD : NetworkBehaviour
         scoreboardText.text = m_Sb.ToString();
     }
 
+    /// <summary>
+    /// Crea el texto del marcador en el Canvas del jugador local (si existe en el prefab).
+    /// </summary>
     void EnsureUI()
     {
         if (scoreboardText != null) return;

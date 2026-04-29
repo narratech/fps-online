@@ -31,20 +31,39 @@ public class BotGameplayActions : MonoBehaviour
 {
     [Header("Navegación (NavMeshAgent)")]
     [Tooltip("Si no hay agente en el prefab, se crea uno en tiempo de ejecución al inicializar.")]
+    /// <summary>
+    /// Si está activo, <see cref="EnsureNavMeshAgentReady"/> añadirá un <see cref="NavMeshAgent"/> en runtime
+    /// cuando ya exista NavMesh bakeado en la escena.
+    /// </summary>
     [SerializeField] bool m_AutoCreateNavMeshAgent = true;
 
+    /// <summary>
+    /// Distancia por defecto para considerar "llegada" al destino (en metros) en navegación.
+    /// </summary>
     [SerializeField] float m_DefaultStoppingDistance = 1.5f;
 
     [Header("Combate (opcional)")]
     [Tooltip("Si es true, en InitializeWeaponSystemsIfNeeded se habilita PlayerWeaponsManager para que ejecute Start y cree las armas iniciales.")]
+    /// <summary>
+    /// Si está activo, el bot re-habilita <see cref="PlayerWeaponsManager"/> para que inicialice armas.
+    /// <para>
+    /// Importante: en el prefab de bot suele estar desactivado para no competir con el input humano.
+    /// </para>
+    /// </summary>
     [SerializeField] bool m_EnableWeaponManagerForBot = false;
 
+    /// <summary>Agente de navegación del bot (servidor). Puede crearse en runtime.</summary>
     NavMeshAgent m_NavMeshAgent;
+    /// <summary>Gestor de armas del personaje (si existe en el prefab).</summary>
     PlayerWeaponsManager m_Weapons;
+    /// <summary>Componente de salud para consultas de estado y gating (vivo/muerto).</summary>
     Health m_Health;
+    /// <summary>Controlador del personaje (se usa principalmente para acceso a Animator y parámetros como MaxSpeed).</summary>
     PlayerCharacterController m_PlayerCc;
 
+    /// <summary>Última posición world usada para calcular una velocidad aproximada (para animación de locomoción).</summary>
     Vector3 m_LastWorldPosForAnim;
+    /// <summary>Marca si ya hay una posición previa válida para calcular velocidad.</summary>
     bool m_HasLastWorldPosForAnim;
 
     /// <summary>Referencia al agente de navegación del bot (puede ser null antes de inicializar).</summary>
@@ -55,6 +74,7 @@ public class BotGameplayActions : MonoBehaviour
 
     void Awake()
     {
+        // Cache de componentes. Nota: algunos pueden estar deshabilitados en el prefab de bot.
         m_Health = GetComponent<Health>();
         m_PlayerCc = GetComponent<PlayerCharacterController>();
         m_Weapons = GetComponent<PlayerWeaponsManager>();
@@ -328,9 +348,13 @@ public class BotGameplayActions : MonoBehaviour
         /// <summary>En espacio local del jugador: X strafe, Z adelante/atrás (como GetMoveInput).</summary>
         public Vector3 Move;
 
+        /// <summary>Equivalente al input de sprint.</summary>
         public bool Sprint;
+        /// <summary>Equivalente al input de agacharse.</summary>
         public bool Crouch;
+        /// <summary>Equivalente a pulsación de salto.</summary>
         public bool JumpPressed;
+        /// <summary>Equivalente a mantener apuntado.</summary>
         public bool AimHeld;
     }
 

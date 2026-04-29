@@ -3,19 +3,43 @@ using UnityEngine;
 
 namespace Unity.FPS.Gameplay
 {
+    /// <summary>
+    /// Spawner de pickups de armas sincronizado por servidor (NGO).
+    /// <para>
+    /// Autoridad:
+    /// - Solo el servidor instancia y hace <c>Spawn()</c> del `NetworkObject`.
+    /// - Los clientes solo reciben la aparición vía replicación.
+    /// </para>
+    /// </summary>
     public class WeaponSpawner : NetworkBehaviour
     {
         [Header("Configuración del Spawner")]
         [Tooltip("Lista de los prefabs de los Pickups de armas (Deben tener NetworkObject)")]
+        /// <summary>
+        /// Prefabs posibles a instanciar. Cada uno debe incluir <see cref="NetworkObject"/> y estar registrado en
+        /// las listas de prefabs de NGO.
+        /// </summary>
         public GameObject[] WeaponPickups;
 
         [Tooltip("Tiempo en segundos entre cada aparición")]
+        /// <summary>
+        /// Intervalo entre spawns cuando no hay pickup activo.
+        /// </summary>
         public float SpawnInterval = 15f;
 
         // Referencia al arma que está actualmente flotando
+        /// <summary>
+        /// Referencia al `NetworkObject` del pickup actualmente activo (si existe y sigue spawn).
+        /// </summary>
         private NetworkObject currentSpawnedWeapon;
+        /// <summary>
+        /// Temporizador interno en segundos (solo corre en servidor).
+        /// </summary>
         private float timer;
 
+        /// <summary>
+        /// Callback de NGO cuando el spawner aparece en red.
+        /// </summary>
         public override void OnNetworkSpawn()
         {
             // Solo el servidor controla cuándo aparecen las armas
@@ -25,6 +49,9 @@ namespace Unity.FPS.Gameplay
             }
         }
 
+        /// <summary>
+        /// Tick servidor: cuenta y spawnea cuando toca, siempre que no haya pickup activo.
+        /// </summary>
         void Update()
         {
             // Si no somos el servidor, no hacemos nada
@@ -44,6 +71,9 @@ namespace Unity.FPS.Gameplay
             }
         }
 
+        /// <summary>
+        /// Instancia un pickup aleatorio y lo spawnea en red.
+        /// </summary>
         void SpawnRandomWeapon()
         {
             if (WeaponPickups.Length == 0) return;

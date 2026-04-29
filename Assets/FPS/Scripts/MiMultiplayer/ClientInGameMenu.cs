@@ -9,32 +9,54 @@ using UnityEngine.UI;
 namespace Unity.FPS.UI
 {
     // Cambiado a MonoBehaviour normal, la interfaz UI no necesita ser NetworkBehaviour
+    /// <summary>
+    /// Menú in-game (pausa/opciones) adaptado a multijugador.
+    /// <para>
+    /// En multijugador NO se usa <c>Time.timeScale</c> porque afectaría a todos o desincronizaría simulación.
+    /// En su lugar, el menú solo actúa localmente: cursor, volumen y toggles de opciones.
+    /// </para>
+    /// <para>
+    /// Estrategia de ownership:
+    /// - Este script es local/UI y no hereda de NetworkBehaviour.
+    /// - Aun así, busca al player local (owner) por <see cref="NetworkObject.IsOwner"/> para operar sobre su input/health.
+    /// </para>
+    /// </summary>
     public class ClientInGameMenu : MonoBehaviour
     {
         [Tooltip("Root GameObject of the menu used to toggle its activation")]
+        /// <summary>Root del menú (se activa/desactiva).</summary>
         public GameObject MenuRoot;
 
         [Tooltip("Master volume when menu is open")]
         [Range(0.001f, 1f)]
+        /// <summary>Volumen master cuando el menú está abierto.</summary>
         public float VolumeWhenMenuOpen = 0.5f;
 
         [Tooltip("Slider component for look sensitivity")]
+        /// <summary>Slider de sensibilidad del ratón (se aplica a <see cref="PlayerInputHandler.LookSensitivity"/>).</summary>
         public Slider LookSensitivitySlider;
 
         [Tooltip("Toggle component for shadows")]
+        /// <summary>Toggle de sombras (modifica <see cref="QualitySettings.shadows"/> localmente).</summary>
         public Toggle ShadowsToggle;
 
         [Tooltip("Toggle component for invincibility")]
+        /// <summary>Toggle de invencibilidad (modifica <see cref="Health.Invincible"/> del player local).</summary>
         public Toggle InvincibilityToggle;
 
         [Tooltip("Toggle component for framerate display")]
+        /// <summary>Toggle para mostrar/ocultar contador de FPS.</summary>
         public Toggle FramerateToggle;
 
         [Tooltip("GameObject for the controls")]
+        /// <summary>Panel de controles (imagen) que se puede mostrar desde el menú.</summary>
         public GameObject ControlImage;
 
+        /// <summary>Input handler del player local.</summary>
         PlayerInputHandler m_PlayerInputsHandler;
+        /// <summary>Salud del player local (para invencibilidad).</summary>
         Health m_PlayerHealth;
+        /// <summary>Contador de FPS (UI).</summary>
         FramerateCounter m_FramerateCounter;
 
         private InputAction m_SubmitAction;
@@ -42,10 +64,12 @@ namespace Unity.FPS.UI
         private InputAction m_NavigateAction;
         private InputAction m_MenuAction;
 
+        /// <summary>Evita inicializar más de una vez (se setea al resolver el player owner).</summary>
         private bool isInitialized = false;
 
         void Awake()
         {
+            // Inicialización local de acciones UI.
             MenuRoot.SetActive(false);
 
             // Preparamos los controles, pero no buscamos al jugador aún
@@ -118,6 +142,7 @@ namespace Unity.FPS.UI
 
         void InitializeMenu(PlayerInputHandler localPlayer)
         {
+            // Binding a referencias del player local y wiring de UI.
             m_PlayerInputsHandler = localPlayer;
             m_PlayerHealth = m_PlayerInputsHandler.GetComponent<Health>();
             m_FramerateCounter = FindFirstObjectByType<FramerateCounter>();
@@ -156,6 +181,7 @@ namespace Unity.FPS.UI
 
         void SetPauseMenuActivation(bool active)
         {
+            // Activación local: cursor + volumen. No altera timeScale (multiplayer).
             MenuRoot.SetActive(active);
 
             if (MenuRoot.activeSelf)

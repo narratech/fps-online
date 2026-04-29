@@ -8,43 +8,89 @@ using System.Collections.Generic;
 
 namespace HelloWorld
 {
+    /// <summary>
+    /// UI Toolkit del menú principal para arrancar Host/Client con NGO, seleccionar personaje y nickname.
+    /// <para>
+    /// Flujo:
+    /// - El usuario elige nombre + prefab (por índice en <see cref="UniversidadesList"/>).
+    /// - Se empaqueta en <see cref="NetworkConfig.ConnectionData"/> como `"nickname_index"`.
+    /// - Al conectar, el servidor lo parsea en `ServerConnectionHandler` (ConnectionApproval) y asigna prefab.
+    /// </para>
+    /// <para>
+    /// DEFECTUOSO (encoding): el payload se codifica en ASCII. Si se permite introducir caracteres no ASCII,
+    /// se perderán o se transformarán. Si necesitáis nombres con tildes/Unicode, conviene UTF8.
+    /// (Marcado solo como comentario: no se cambia código).
+    /// </para>
+    /// <para>
+    /// Nota: este script también gestiona UI de "Controls" y navegación atrás, y muestra errores de conexión.
+    /// </para>
+    /// </summary>
     public class MainMenuNetworkUI : MonoBehaviour
     {
+        /// <summary>
+        /// Nickname global elegido. Se usa por otros scripts como fallback / lectura en partida.
+        /// </summary>
         public static string PlayerNickname = "Player";
 
         [Header("Configuración de Personajes")]
+        /// <summary>
+        /// Lista de prefabs seleccionables para el dropdown (NGO NetworkPrefabsList).
+        /// </summary>
         public NetworkPrefabsList UniversidadesList;
 
+        /// <summary>Imagen/panel de controles (se muestra/oculta con Cancel).</summary>
         public GameObject controlsImageObject;
+        /// <summary>Acción UI/Cancel del InputSystem (para cerrar controles).</summary>
         private InputAction cancelAction;
 
         // Contenedores
+        /// <summary>Contenedor principal del menú.</summary>
         private VisualElement mainMenuContainer;
+        /// <summary>Contenedor de selección de rol (host/client).</summary>
         private VisualElement roleSelectionContainer;
+        /// <summary>Contenedor de conexión (ip/puerto + start).</summary>
         private VisualElement connectionContainer;
 
         // Botones principales
+        /// <summary>Botón "Play" (entra a selección de rol).</summary>
         private Button btnPlay;
+        /// <summary>Botón "Controls" (muestra panel de controles).</summary>
         private Button btnControls;
+        /// <summary>Botón "Host".</summary>
         private Button btnStartHost;
+        /// <summary>Botón "Client".</summary>
         private Button btnStartClient;
+        /// <summary>Botón final para arrancar conexión con datos seleccionados.</summary>
         private Button btnFinalStart;
 
         // Botones de Atrás
+        /// <summary>Volver desde selección de rol a menú principal.</summary>
         private Button btnBackRole;
+        /// <summary>Volver desde conexión a selección de rol.</summary>
         private Button btnBackConnection;
 
         // Campos de texto
+        /// <summary>Input del nickname.</summary>
         private TextField inputNickname;
+        /// <summary>Input IP (host o destino).</summary>
         private TextField inputIP;
+        /// <summary>Input puerto.</summary>
         private TextField inputPort;
+        /// <summary>Dropdown de personaje (se llena desde <see cref="UniversidadesList"/>).</summary>
         private DropdownField dropdownCharacter;
 
         // Etiqueta para mostrar los errores
+        /// <summary>Label de error/estado de conexión.</summary>
         private Label lblError;
 
+        /// <summary>
+        /// True si la acción final debe arrancar host; false si debe arrancar client.
+        /// </summary>
         private bool isConnectingAsHost;
 
+        /// <summary>
+        /// Inicializa referencias de UI Toolkit y suscribe callbacks a botones/acciones.
+        /// </summary>
         void OnEnable()
         {
             var uiDocument = GetComponent<UIDocument>();
@@ -94,6 +140,9 @@ namespace HelloWorld
             ClearError(); // Limpiamos errores al empezar
         }
 
+        /// <summary>
+        /// Rellena el dropdown de personajes usando los prefabs registrados en <see cref="UniversidadesList"/>.
+        /// </summary>
         private void SetupCharacterDropdown()
         {
             if (dropdownCharacter != null && UniversidadesList != null)
@@ -120,12 +169,14 @@ namespace HelloWorld
 
         void Start()
         {
+            // Se engancha a desconexión para mostrar un error si falla conectar.
             if (NetworkManager.Singleton != null)
             {
                 NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnectCallback;
             }
         }
 
+        /// <summary>Desuscribe callbacks para evitar fugas al desactivar el menú.</summary>
         void OnDisable()
         {
             if (btnPlay != null) btnPlay.clicked -= OnPlayClicked;
@@ -147,6 +198,7 @@ namespace HelloWorld
 
         void Update()
         {
+            // Si el panel de controles está visible, Cancel lo cierra.
             if (controlsImageObject != null && controlsImageObject.activeSelf && cancelAction != null && cancelAction.WasPressedThisFrame())
             {
                 controlsImageObject.SetActive(false);
@@ -163,12 +215,14 @@ namespace HelloWorld
 
         // --- LÓGICA DE TRANSICIONES DE INTERFAZ ---
 
+        /// <summary>Avanza a selección de rol.</summary>
         private void OnPlayClicked()
         {
             ClearError();
             ShowContainer(roleSelectionContainer);
         }
 
+        /// <summary>Muestra la imagen/panel de controles.</summary>
         private void OnControlsClicked()
         {
             if (controlsImageObject != null) controlsImageObject.SetActive(true);
@@ -214,6 +268,7 @@ namespace HelloWorld
         }
 
         // --- SISTEMA DE ERRORES ---
+        /// <summary>Muestra un error en UI y lo loguea.</summary>
         private void ShowError(string message)
         {
             if (lblError != null)
@@ -224,6 +279,7 @@ namespace HelloWorld
             Debug.LogError(message);
         }
 
+        /// <summary>Limpia el error en UI.</summary>
         private void ClearError()
         {
             if (lblError != null)
@@ -233,6 +289,9 @@ namespace HelloWorld
             }
         }
 
+        /// <summary>
+        /// Callback de desconexión: si el cliente local se desconecta durante conexión, se asume fallo.
+        /// </summary>
         private void OnClientDisconnectCallback(ulong clientId)
         {
             // Si nos desconectan a nosotros (el cliente local)
@@ -248,6 +307,9 @@ namespace HelloWorld
 
         // --- LÓGICA DE RED (NETCODE) ---
 
+        /// <summary>
+        /// Construye el payload, configura transporte (ip/puerto) y arranca Host o Client.
+        /// </summary>
         private void OnFinalStartClicked()
         {
             ClearError();

@@ -39,24 +39,47 @@ public enum BotState
 
 [RequireComponent(typeof(BotGameplayActions))]
 [DisallowMultipleComponent]
+/// <summary>
+/// Máquina de estados simple del bot basada en NGO.
+/// <para>
+/// Autoridad: <b>servidor</b>. El <see cref="Update"/> de IA retorna en clientes para que el bot no se "duplique".
+/// </para>
+/// <para>
+/// Dependencias:
+/// - <see cref="BotGameplayActions"/> ejecuta movimiento/armas y encapsula detalles de componentes del FPS sample.
+/// - <see cref="Health"/> emite eventos para transicionar a <see cref="BotState.Dead"/> y reactivar tras revive.
+/// </para>
+/// <para>
+/// DEFECTUOSO (búsquedas por frame potenciales): este script usa <c>Object.FindFirstObjectByType</c> en init
+/// (solo al inicio). Está bien para prototipo, pero en builds grandes conviene inyectar referencias.
+/// </para>
+/// </summary>
 public class FSM : NetworkBehaviour
 {
     [Header("FSM — parámetros del ejemplo Wandering")]
     [Tooltip("Radio alrededor de la posición actual para elegir un nuevo punto aleatorio en NavMesh.")]
+    /// <summary>Radio máximo para elegir puntos de deambular.</summary>
     [SerializeField] float m_WanderRadius = 25f;
 
     [Tooltip("Cada cuántos segundos, como máximo, se reconsidera el destino.")]
+    /// <summary>Cadencia con la que se recalcula un nuevo destino de wandering.</summary>
     [SerializeField] float m_RepathIntervalSeconds = 1.25f;
 
     [Header("FSM — depuración")]
+    /// <summary>Si true, escribe en consola transiciones de estado.</summary>
     [SerializeField] bool m_LogStateTransitions;
 
+    /// <summary>Estado actual.</summary>
     BotState m_State = BotState.Idle;
+    /// <summary>Estado anterior solo para logging.</summary>
     BotState m_PreviousStateForLog;
 
+    /// <summary>Timestamp (Time.time) del próximo repath permitido.</summary>
     float m_NextRepathTime;
 
+    /// <summary>Referencia a vida del bot para gating y eventos.</summary>
     Health m_Health;
+    /// <summary>API de acciones (movimiento/armas) usada por la FSM.</summary>
     BotGameplayActions m_Actions;
 
     // ---------------------------------------------------------------------------------------------
@@ -111,6 +134,8 @@ public class FSM : NetworkBehaviour
     /// </summary>
     IEnumerator ServerInitBotWhenGameplaySceneReady()
     {
+        // Espera activa hasta que la escena de gameplay tenga NavMesh y exista ActorsManager.
+        // Esto evita añadir/activar NavMeshAgent en escenas de menú (sin NavMesh).
         const float timeoutSeconds = 45f;
         float elapsed = 0f;
 
@@ -135,6 +160,7 @@ public class FSM : NetworkBehaviour
 
     void DisableHumanInputAndWeaponStack()
     {
+        // Desactiva input/armas del stack humano para evitar competencia con IA.
         var inputHandler = GetComponent<PlayerInputHandler>();
         if (inputHandler != null)
             inputHandler.enabled = false;
@@ -146,6 +172,7 @@ public class FSM : NetworkBehaviour
 
     void DisableHumanLocomotionThatConflictsWithNavMesh()
     {
+        // Desactiva locomoción "humana" (CC/PCC/Jetpack) para que NavMeshAgent gobierne el movimiento.
         var pcc = GetComponent<PlayerCharacterController>();
         if (pcc != null)
             pcc.enabled = false;
@@ -165,6 +192,10 @@ public class FSM : NetworkBehaviour
 
     void DisableCameraAndAudioForNonOwner()
     {
+        // En bots/objetos no controlados localmente, desactivamos cámaras y audio para evitar:
+        // - múltiples AudioListener,
+        // - cámaras extra renderizando,
+        // - costes de rendimiento.
         foreach (var cam in GetComponentsInChildren<Camera>(true))
             cam.enabled = false;
 
@@ -184,6 +215,7 @@ public class FSM : NetworkBehaviour
 
     void OnBotDied()
     {
+        // Evento de Health: transiciona y detiene navegación (servidor).
         TransitionTo(BotState.Dead);
         m_Actions.DisableNavMeshAgent();
     }
@@ -229,6 +261,11 @@ public class FSM : NetworkBehaviour
     /// </summary>
     void TickWanderingExample()
     {
+        // Ejemplo mínimo. La IA real debería modular:
+        // - selección de objetivos,
+        // - transiciones por estímulos (ruido, visión, daño),
+        // - combate,
+        // - respawn/inactividad.
         if (m_Health != null && m_Health.CurrentHealth <= 0f)
             return;
 
@@ -254,6 +291,7 @@ public class FSM : NetworkBehaviour
     /// </summary>
     void TransitionTo(BotState newState)
     {
+        // Punto único para transiciones: útil para ejecutar on-enter/on-exit y logging.
         if (m_State == newState)
             return;
 
@@ -296,6 +334,7 @@ public class FSM : NetworkBehaviour
 
     static bool TryPickRandomNavMeshPoint(Vector3 origin, float radius, out Vector3 result)
     {
+        // Muestreo aleatorio: intenta 20 candidatos en esfera y proyecta en NavMesh.
         for (int i = 0; i < 20; i++)
         {
             var rnd = Random.insideUnitSphere * radius;

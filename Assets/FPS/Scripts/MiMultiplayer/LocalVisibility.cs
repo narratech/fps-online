@@ -5,18 +5,32 @@ using UnityEngine.Rendering;
 
 namespace Unity.FPS.Gameplay
 {
+    /// <summary>
+    /// Controla la visibilidad local del cuerpo/brazos/armas 3ª persona según si el objeto pertenece al jugador local.
+    /// <para>
+    /// Propósito: en 1ª persona suele ocultarse el cuerpo completo del owner (para evitar clipping)
+    /// y mostrar solo brazos; para el resto de jugadores sí se muestra el cuerpo y armas 3ª persona.
+    /// </para>
+    /// <para>
+    /// Este componente corre al spawnear en red y también en <see cref="OnValidate"/> (útil para probar en editor).
+    /// </para>
+    /// </summary>
     public class LocalVisibility : NetworkBehaviour
     {
         [Tooltip("Si está desactivado, solo verás tu sombra. Si está activado, verás tu cuerpo entero.")]
+        /// <summary>Si true, el owner ve su propio cuerpo; si false, solo sombras.</summary>
         public bool ShowBodyToOwner = false;
 
         [Tooltip("Arrastra aquí el/los 'Skinned Mesh Renderer' de tu personaje de Mixamo")]
+        /// <summary>Renderers del cuerpo (Mixamo/3ª persona) sobre los que se ajusta ShadowCastingMode.</summary>
         public SkinnedMeshRenderer[] BodyRenderers;
 
         [Tooltip("Arrastra aquí los brazos sueltos")]
+        /// <summary>Brazos de 1ª persona: se activan solo para el owner.</summary>
         public GameObject ArmsRenderers;
 
         [Tooltip("Arrastra aquí el contenedor de armas en tercera persona")]
+        /// <summary>Contenedor de armas fake 3ª persona: se muestra (o solo sombras) según owner.</summary>
         public GameObject ThirdPersonWeapons;
 
         // Se ejecuta en el momento en que el jugador aparece en la red
@@ -36,6 +50,10 @@ namespace Unity.FPS.Gameplay
 
         void UpdateVisibility()
         {
+            // Regla:
+            // - Owner: cuerpo y armas 3ª persona se muestran completos o solo sombras según ShowBodyToOwner.
+            // - No-owner: cuerpo y armas 3ª persona siempre visibles.
+            // - Brazos 1ª persona: solo owner.
             // 1. Gestionar el cuerpo de Mixamo
             foreach (var renderer in BodyRenderers)
             {

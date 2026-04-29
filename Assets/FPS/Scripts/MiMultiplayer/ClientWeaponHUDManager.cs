@@ -6,17 +6,36 @@ using UnityEngine;
 
 namespace Unity.FPS.UI
 {
+    /// <summary>
+    /// Construye y mantiene el HUD de munición para el jugador local en multijugador.
+    /// <para>
+    /// Estrategia:
+    /// - En <see cref="Update"/>, busca (una vez) el <see cref="PlayerWeaponsManager"/> cuyo <see cref="NetworkObject.IsOwner"/> sea true.
+    /// - Inicializa contadores para arma activa y se suscribe a eventos del manager (add/remove/switch).
+    /// </para>
+    /// <para>
+    /// Nota: el uso de búsqueda por escena es válido para prototipo, pero PRESCINDIBLE si el HUD vive ya como hijo
+    /// del prefab del jugador local o si se inyecta la referencia explícitamente (evita scans).
+    /// </para>
+    /// </summary>
     public class ClientWeaponHUDManager : MonoBehaviour
     {
         [Tooltip("UI panel containing the layoutGroup for displaying weapon ammo")]
+        /// <summary>Panel UI donde se instancian los contadores de munición.</summary>
         public RectTransform AmmoPanel;
 
         [Tooltip("Prefab for displaying weapon ammo")]
+        /// <summary>Prefab de `AmmoCounter` (UI) para cada arma equipada.</summary>
         public GameObject AmmoCounterPrefab;
 
+        /// <summary>Gestor de armas del jugador local (owner) una vez resuelto.</summary>
         private PlayerWeaponsManager m_PlayerWeaponsManager;
+        /// <summary>Lista de contadores instanciados.</summary>
         private List<AmmoCounter> m_AmmoCounters = new List<AmmoCounter>();
 
+        /// <summary>
+        /// Resolución perezosa del PlayerWeaponsManager local para evitar inicialización antes de que spawnee el player.
+        /// </summary>
         void Update()
         {
             // 1. Si ya hemos encontrado al jugador y nos hemos suscrito, salimos del Update inmediatamente.
@@ -41,6 +60,7 @@ namespace Unity.FPS.UI
 
         void InitializeHUD(PlayerWeaponsManager localPlayer)
         {
+            // Se llama una única vez cuando se detecta el player local.
             m_PlayerWeaponsManager = localPlayer;
 
             // Dibujamos el arma con la que nacemos
@@ -70,6 +90,7 @@ namespace Unity.FPS.UI
 
         void AddWeapon(WeaponController newWeapon, int weaponIndex)
         {
+            // Crea un contador de munición para el slot/índice (si no existe ya).
             // Barrera de seguridad extra: Si la barra ya existe, no la dibujamos.
             for (int i = 0; i < m_AmmoCounters.Count; i++)
             {
@@ -88,6 +109,7 @@ namespace Unity.FPS.UI
 
         void RemoveWeapon(WeaponController newWeapon, int weaponIndex)
         {
+            // Destruye el contador asociado al índice.
             int foundCounterIndex = -1;
             for (int i = 0; i < m_AmmoCounters.Count; i++)
             {
@@ -106,6 +128,7 @@ namespace Unity.FPS.UI
 
         void ChangeWeapon(WeaponController weapon)
         {
+            // Fuerza rebuild del layout para recolocar UI tras cambio de arma.
             if (AmmoPanel != null)
             {
                 UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(AmmoPanel);
