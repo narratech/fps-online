@@ -1671,7 +1671,6 @@ GameObject:
   - component: {fileID: 3792665227012813759}
   - component: {fileID: 8088806746026311069}
   - component: {fileID: 6652955069888732228}
-  - component: {fileID: -5372112491453352032}
   - component: {fileID: 9085002736659542522}
   - component: {fileID: -8179391460120874077}
   - component: {fileID: -5875526496074363916}
@@ -1679,6 +1678,7 @@ GameObject:
   - component: {fileID: 4512190218612294183}
   - component: {fileID: 1722169817429297685}
   - component: {fileID: 2931731295390458686}
+  - component: {fileID: 4828794809904590943}
   m_Layer: 0
   m_Name: UCM_Bot
   m_TagString: Untagged
@@ -2090,36 +2090,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &-5372112491453352032
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1744405021316778650}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
-  m_Actions: {fileID: 0}
-  m_NotificationBehavior: 0
-  m_UIInputModule: {fileID: 0}
-  m_DeviceLostEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_DeviceRegainedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ControlsChangedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ActionEvents: []
-  m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: 
-  m_DefaultActionMap: Player
-  m_SplitScreenIndex: -1
-  m_Camera: {fileID: 0}
 --- !u!114 &9085002736659542522
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2158,6 +2128,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Unity.FPS.Gameplay.PlayerRespawner
   ShowTopMostFoldoutHeaderGroup: 1
+  m_MinHorizontalSeparationFromPlayers: 3
+  m_NavMeshSampleRadius: 4
 --- !u!114 &-5875526496074363916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2344,9 +2316,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FSM
   ShowTopMostFoldoutHeaderGroup: 1
-  wanderRadius: 25
-  repathIntervalSeconds: 1.25
-  stoppingDistance: 1.5
+  m_WanderRadius: 25
+  m_RepathIntervalSeconds: 1.25
+  m_LogStateTransitions: 0
+--- !u!114 &4828794809904590943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1744405021316778650}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bef0e84d86e8a547919000201ff248f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BotGameplayActions
+  m_AutoCreateNavMeshAgent: 1
+  m_DefaultStoppingDistance: 1.5
+  m_EnableWeaponManagerForBot: 0
 --- !u!1 &1788606075170186430
 GameObject:
   m_ObjectHideFlags: 0
