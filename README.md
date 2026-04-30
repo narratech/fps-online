@@ -359,6 +359,22 @@ Los bots son diferentes porque no usan el teclado de nadie: su “cerebro” viv
 Fin de partida y cambio de escena: técnicamente quien lleva el servidor puede arrastrar a todo el grupo a otra pantalla (victoria, derrota, repetir); aunque un cliente sin ese rol no puede reiniciar la partida para los demás, sólo salirse o seguir escuchando lo que diga el servidor.
 En resumen: esta parte añadida de multijugador reparte responsabilidades entre “quien mantiene la verdad del juego” (la autoridad) y “quien sólo interpreta y muestra”, adaptando el HUD, menús y personajes para que encajen con esa repartición.
 
+### Escenas
+
+IntroMenu es la escena que contiene el menú del juego. Como novedad encontramos estos objetos:
+* StartButtonsManager, donde se ha incluido el script MainMenuNetworkUI que permite poner en marcha el juego en red, tanto de cliente como de servidor
+* LocalRespawnService, para respawnear objetos del juego (es en sí mismo un objeto no destruible al cargar escenas)
+* NetworkManager, para llevar todo el tema de la sesión de juego en red... se usa el componente Unity Transport (es en sí mismo un objeto no destruible al cargar escenas)
+* [Debug Updater], pequeña herramienta para ayudar a la depuración... (es en sí mismo un objeto no destruible al cargar escenas)
+
+MainScene es la escena principal del juego, una sala de ejemplo donde poder probarlo todo. Como novedad encontramos estos objetos:
+* NetworkManager (realmente no hace falta porque vendrá del propio menú)
+* RespawnPoints, puntos de respawn
+* WeaponSpawner, respawn de armas
+* Player_Network, quizá tampoco se usa porque aparecen los jugadores sobrela marcha
+* AnalysisDataManager, para análisis de datos que no estamos usando
+
+
 ### Clases y sus relaciones
 
 Los sistemas principales (bloques en que estructura la aplicación) que encontramos en el diseño software de esta parte multijugador son estos:
