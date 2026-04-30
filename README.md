@@ -37,6 +37,46 @@ Son controles válidos tanto el teclado y ratón, como el mando de juego:
 * Menú en partida: está bastante detallado porque ofrece pausa, ajustes de sensibilidad, sombras, hacerte invencible, FPS en pantalla, imagen de controles.
 * Jetpack: en el aire, mantener la acción de salto mientras el sistema lo permite y haya combustible (tras haber pulsado salto otra vez en el aire para “armar” el uso).
 
+### Escenas
+
+IntroMenu es la escena que contiene el menú del juego. Encontramos estos objetos:
+* Main Camera
+* Canvas
+* ControlsImageCanvas, para mostrar visualmente los controles del juego
+* MenuNavigation, para poder navegar interactuando con el menú
+* EventSystem
+* StartButtonsManager, donde se ha incluido el script MainMenuNetworkUI que permite poner en marcha el juego en red, tanto de cliente como de servidor
+* LocalRespawnService, para respawnear objetos del juego (es en sí mismo un objeto no destruible al cargar escenas)
+* NetworkManager, para llevar todo el tema de la sesión de juego en red... se usa el componente Unity Transport (es en sí mismo un objeto no destruible al cargar escenas)
+* [Debug Updater], pequeña herramienta para ayudar a la depuración... (es en sí mismo un objeto no destruible al cargar escenas)
+
+MainScene es la escena principal del juego, una sala de ejemplo donde poder probarlo todo. Encontramos estos objetos:
+* GameManager, general
+* ObjectiveKillEnemies, general
+* NavMeshSurface, general
+* EventSystem, general
+* SpawnPoint, para spawnear jugadores
+* Enemy_Turret, numerados según la cantidad de torretas enemigas
+* Enemy_HoverBot, numerados según la cantidad de robots enemigos
+* Patrol, puntos para patrullar
+* Pickup_Health, numerados según los botiquines a coger
+* Pickup_Shotgun
+* Pickup_Guns
+* Pickup_Flamethrower
+* Pickup_Sniper
+* Pickup_Rifle
+* Pickup_Launcher
+* Directional Light, específico del nivel
+* HighStep
+* VFX_Dust
+* VFX_Lava
+* Level, con toda la geometría de cada una de las habitaciones del nivel por debajo
+* NetworkManager (realmente no hace falta porque vendrá del propio menú)
+* RespawnPoints, puntos de respawn
+* WeaponSpawner, respawn de armas
+* Player_Network, quizá tampoco se usa porque aparecen los jugadores sobrela marcha
+* AnalysisDataManager, para análisis de datos que no estamos usando
+
 ### Clases y sus relaciones
 
 Los sistemas principales (bloques en que estructura la aplicación) que encontramos en el diseño software de este juego son estos:
